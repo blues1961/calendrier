@@ -1,0 +1,47 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - db_data_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+
+  backend:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DJANGO_DEBUG: ${DJANGO_DEBUG}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      ACCESS_TOKEN_LIFETIME_MIN: ${ACCESS_TOKEN_LIFETIME_MIN}
+      REFRESH_TOKEN_LIFETIME_DAYS: ${REFRESH_TOKEN_LIFETIME_DAYS}
+    ports:
+      - "8000:8000"
+    command: ["bash","-lc","python manage.py collectstatic --noinput && gunicorn calendar_project.wsgi:application --bind 0.0.0.0:8000 --workers 3"]
+
+  frontend:
+    build: ./frontend
+    environment:
+      VITE_API_BASE: ${API_BASE}
+    volumes:
+      - frontend_build:/dist
+    command: ["bash","-lc","npm ci && npm run build && cp -r dist/* /dist/"]
+
+volumes:
+  db_data_prod:
+  frontend_build:
