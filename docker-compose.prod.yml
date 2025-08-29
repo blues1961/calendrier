@@ -18,6 +18,11 @@ services:
   backend:
     #image: ghcr.io/blues1961/calendrier-backend:${IMAGE_TAG}
     build: ./backend
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     depends_on:
       db:
         condition: service_healthy
