@@ -1,0 +1,95 @@
+name: backend-ci-cd
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "backend/**"
+      - "docker-compose.prod.yml"
+      - ".github/workflows/backend.yml"
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute image tag
+        id: meta
+        run: echo "tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/calendrier-backend:${{ steps.meta.outputs.tag }}
+            ghcr.io/${{ github.repository_owner }}/calendrier-backend:latest
+
+  deploy:
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: SSH deploy (git pull, pull images, migrate, restart)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            APP_PATH="${{ secrets.PROD_APP_PATH:-$HOME/apps/calendrier }}"
+            cd "$APP_PATH"
+
+            echo "[1/6] Git pull"
+            git fetch --all --prune
+            git reset --hard origin/main
+
+            echo "[2/6] Met à jour IMAGE_TAG dans .env.prod"
+            if grep -q '^IMAGE_TAG=' .env.prod 2>/dev/null; then
+              sed -i "s|^IMAGE_TAG=.*|IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}|" .env.prod
+            else
+              echo "IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}" >> .env.prod
+            fi
+            echo "[deploy] IMAGE_TAG=$(grep '^IMAGE_TAG=' .env.prod | cut -d= -f2)"
+
+            echo "[3/6] Connexion GHCR (si nécessaire)"
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            echo "[4/6] Pull des images"
+            docker compose -f docker-compose.prod.yml --env-file .env.prod pull
+
+            echo "[5/6] Migrations + collectstatic"
+            docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm backend python manage.py migrate --noinput
+            docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm backend python manage.py collectstatic --noinput || true
+
+            echo "[6/6] Redémarrage"
+            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+
+            echo "Santé / logs courts"
+            docker compose -f docker-compose.prod.yml --env-file .env.prod ps
+            docker compose -f docker-compose.prod.yml --env-file .env.prod logs --since=1m backend || true
+
+    concurrency:
+      group: deploy-prod
+      cancel-in-progress: false
