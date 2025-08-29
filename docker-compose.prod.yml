@@ -31,7 +31,7 @@ services:
       DB_PORT: "5432"
       ALLOWED_HOSTS: cal-api.mon-site.ca
       CORS_ALLOWED_ORIGINS: https://cal.mon-site.ca
-      CSRF_TRUSTED_ORIGINS: https://cal.mon-site.ca,https://cal-api.mon-site.ca
+      CSRF_TRUSTED_ORIGINS: "https://cal.mon-site.ca,https://cal-api.mon-site.ca"
       SECURE_SSL_REDIRECT: "1"
       SESSION_COOKIE_SECURE: "1"
       CSRF_COOKIE_SECURE: "1"
@@ -40,58 +40,59 @@ services:
       SECURE_HSTS_PRELOAD: "1"
       ACCESS_TOKEN_LIFETIME_MIN: "60"
       REFRESH_TOKEN_LIFETIME_DAYS: "7"
-    # Exposé seulement en loopback (Apache reverse proxy)
     ports:
       - "127.0.0.1:8002:8000"
-    command: |
-      bash -lc '
+    command:
+      - bash
+      - -lc
+      - |
         python - << "PY"
-import os, socket, time, sys
-import psycopg
+        import os, socket, time, sys
+        import psycopg
 
-host = os.environ.get("DB_HOST", "db")
-port = int(os.environ.get("DB_PORT", "5432"))
-user = os.environ.get("POSTGRES_USER")
-pwd  = os.environ.get("POSTGRES_PASSWORD")
-db   = os.environ.get("POSTGRES_DB")
+        host = os.environ.get("DB_HOST", "db")
+        port = int(os.environ.get("DB_PORT", "5432"))
+        user = os.environ.get("POSTGRES_USER")
+        pwd  = os.environ.get("POSTGRES_PASSWORD")
+        db   = os.environ.get("POSTGRES_DB")
 
-# --- Attente DNS (60s max)
-print("[boot] Attente DNS pour", host)
-deadline = time.time() + 60
-while True:
-    try:
-        socket.gethostbyname(host)
-        print("[boot] DNS OK:", host)
-        break
-    except Exception as e:
-        if time.time() > deadline:
-            print("[boot] DNS KO:", e)
-            sys.exit(1)
-        print("[boot] DNS pas prêt:", e)
-        time.sleep(2)
+        # --- Attente DNS (60s max)
+        print("[boot] Attente DNS pour", host)
+        deadline = time.time() + 60
+        while True:
+            try:
+                socket.gethostbyname(host)
+                print("[boot] DNS OK:", host)
+                break
+            except Exception as e:
+                if time.time() > deadline:
+                    print("[boot] DNS KO:", e)
+                    sys.exit(1)
+                print("[boot] DNS pas prêt:", e)
+                time.sleep(2)
 
-# --- Attente Postgres (120s max)
-print("[boot] Test connexion Postgres...")
-deadline = time.time() + 120
-while True:
-    try:
-        with psycopg.connect(host=host, port=port, user=user, password=pwd, dbname=db, connect_timeout=3) as conn:
-            with conn.cursor() as cur:
-                cur.execute("select 1")
-                print("[boot] Connexion Postgres OK:", cur.fetchone())
-        break
-    except Exception as e:
-        if time.time() > deadline:
-            print("[boot] Postgres KO:", e)
-            sys.exit(1)
-        print("[boot] Postgres pas prêt:", e)
-        time.sleep(2)
-PY
+        # --- Attente Postgres (120s max)
+        print("[boot] Test connexion Postgres...")
+        deadline = time.time() + 120
+        while True:
+            try:
+                with psycopg.connect(host=host, port=port, user=user, password=pwd, dbname=db, connect_timeout=3) as conn:
+                    with conn.cursor() as cur:
+                        cur.execute("select 1")
+                        print("[boot] Connexion Postgres OK:", cur.fetchone())
+                break
+            except Exception as e:
+                if time.time() > deadline:
+                    print("[boot] Postgres KO:", e)
+                    sys.exit(1)
+                print("[boot] Postgres pas prêt:", e)
+                time.sleep(2)
+        PY
+
         echo "[boot] collectstatic + migrate + gunicorn";
         python manage.py collectstatic --noinput &&
         python manage.py migrate &&
         gunicorn calendar_project.wsgi:application --bind 0.0.0.0:8000 --workers 3
-      '
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/health/ || exit 1"]
       interval: 10s
