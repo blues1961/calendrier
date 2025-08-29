@@ -45,44 +45,48 @@ services:
       - "127.0.0.1:8002:8000"
     command: |
       bash -lc '
-        echo "[boot] Attente DNS pour db...";
-        for i in {1..30}; do
-          python - << "PY"
-          import os, socket, sys
-          host = os.environ.get("DB_HOST", "db")
-          try:
-              socket.gethostbyname(host)
-              print("[boot] DNS OK:", host)
-              sys.exit(0)
-          except Exception as e:
-            print("[boot] DNS pas prêt:", e)
-            sys.exit(1)
-          PY
-          if [ $? -eq 0 ]; then break; fi
-          sleep 2
-        done
-
-        echo "[boot] Test connexion Postgres...";
         python - << "PY"
-      import os, sys, time
-      import psycopg
-      host = os.environ.get("DB_HOST","db")
-      port = int(os.environ.get("DB_PORT","5432"))
-      user = os.environ.get("POSTGRES_USER")
-      pwd  = os.environ.get("POSTGRES_PASSWORD")
-      db   = os.environ.get("POSTGRES_DB")
-      for i in range(30):
-      try:
+import os, socket, time, sys
+import psycopg
+
+host = os.environ.get("DB_HOST", "db")
+port = int(os.environ.get("DB_PORT", "5432"))
+user = os.environ.get("POSTGRES_USER")
+pwd  = os.environ.get("POSTGRES_PASSWORD")
+db   = os.environ.get("POSTGRES_DB")
+
+# --- Attente DNS (60s max)
+print("[boot] Attente DNS pour", host)
+deadline = time.time() + 60
+while True:
+    try:
+        socket.gethostbyname(host)
+        print("[boot] DNS OK:", host)
+        break
+    except Exception as e:
+        if time.time() > deadline:
+            print("[boot] DNS KO:", e)
+            sys.exit(1)
+        print("[boot] DNS pas prêt:", e)
+        time.sleep(2)
+
+# --- Attente Postgres (120s max)
+print("[boot] Test connexion Postgres...")
+deadline = time.time() + 120
+while True:
+    try:
         with psycopg.connect(host=host, port=port, user=user, password=pwd, dbname=db, connect_timeout=3) as conn:
-            print("[boot] Connexion Postgres OK")
-            sys.exit(0)
-      except Exception as e:
+            with conn.cursor() as cur:
+                cur.execute("select 1")
+                print("[boot] Connexion Postgres OK:", cur.fetchone())
+        break
+    except Exception as e:
+        if time.time() > deadline:
+            print("[boot] Postgres KO:", e)
+            sys.exit(1)
         print("[boot] Postgres pas prêt:", e)
         time.sleep(2)
-        print("[boot] Abandon (DB indisponible).")
-        sys.exit(1)
-      PY
-
+PY
         echo "[boot] collectstatic + migrate + gunicorn";
         python manage.py collectstatic --noinput &&
         python manage.py migrate &&
