@@ -1,13 +1,17 @@
-# Calendrier — Docker • Django • React • Apache2
+# 📅 Calendrier — Django • React • Docker
 
-Suivre `docker compose` avec `--env-file` (.env.dev en dev / .env.prod en prod).
+Application de calendrier auto-hébergée, inspirée de Google Calendar :  
+- **Backend** : Django + Django REST Framework + JWT  
+- **Frontend** : React + Vite + react-big-calendar  
+- **Base** : PostgreSQL  
+- **Infra** : Docker Compose (dev/prod), reverse proxy Apache2  
+- **Langue** : Français (Canada)
 
-## Démarrage (dev)
+---
 
+## 🚀 Démarrage rapide
+
+### 1. Cloner le projet
 ```bash
-docker compose -f docker-compose.dev.yml --env-file .env.dev up -d --build
-docker compose -f docker-compose.dev.yml --env-file .env.dev exec backend python manage.py createsuperuser
-```
-
-Frontend: http://localhost:5173  
-API: http://localhost:8000/api/
+git clone git@github.com:blues1961/calendrier.git
+cd calendrier
