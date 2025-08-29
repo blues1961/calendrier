@@ -4,9 +4,17 @@ from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# --- Helpers
+def _split_env(name: str, default: str = ""):
+    return [x.strip() for x in os.environ.get(name, default).split(",") if x.strip()]
+
+def _env_bool(name: str, default: bool = False):
+    return bool(int(os.environ.get(name, "1" if default else "0")))
+
+# --- Core
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "change-me")
-DEBUG = bool(int(os.environ.get("DJANGO_DEBUG", 0)))
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "*").split(",")
+DEBUG = _env_bool("DJANGO_DEBUG", False)
+ALLOWED_HOSTS = _split_env("ALLOWED_HOSTS", "*")
 
 INSTALLED_APPS = [
     "django.contrib.admin", "django.contrib.auth", "django.contrib.contenttypes",
@@ -45,6 +53,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "calendar_project.wsgi.application"
 
+# --- DB
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -56,29 +65,50 @@ DATABASES = {
     }
 }
 
+# --- i18n
 LANGUAGE_CODE = "fr-ca"
 TIME_ZONE = "America/Toronto"
 USE_I18N = True
 USE_TZ = True
 
+# --- Static
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# --- DRF
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",  # <-- ceci est le bon chemin
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
 }
 
-
-CORS_ALLOWED_ORIGINS = os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
-
+# --- Auth (JWT)
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.environ.get("ACCESS_TOKEN_LIFETIME_MIN", 60))),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.environ.get("REFRESH_TOKEN_LIFETIME_DAYS", 7))),
+    "ACCESS_TOKEN_LIFETIME": timedelta(
+        minutes=int(os.environ.get("ACCESS_TOKEN_LIFETIME_MIN", 60))
+    ),
+    "REFRESH_TOKEN_LIFETIME": timedelta(
+        days=int(os.environ.get("REFRESH_TOKEN_LIFETIME_DAYS", 7))
+    ),
 }
+
+# --- CORS / CSRF
+CORS_ALLOWED_ORIGINS = _split_env("CORS_ALLOWED_ORIGINS")  # p.ex. https://cal.mon-site.ca
+CSRF_TRUSTED_ORIGINS = _split_env("CSRF_TRUSTED_ORIGINS")  # p.ex. https://cal.mon-site.ca, https://cal-api.mon-site.ca
+CORS_ALLOW_CREDENTIALS = True  # utile si un jour cookies/headers auth inter-sites
+
+# --- Reverse proxy TLS (Apache) : indique à Django que la requête est en HTTPS
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# --- Drapeaux sécurité (peuvent aussi être passés via .env ; on laisse Django les lire)
+SECURE_SSL_REDIRECT = _env_bool("SECURE_SSL_REDIRECT", not DEBUG)
+SESSION_COOKIE_SECURE = _env_bool("SESSION_COOKIE_SECURE", not DEBUG)
+CSRF_COOKIE_SECURE = _env_bool("CSRF_COOKIE_SECURE", not DEBUG)
+SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", "0" if DEBUG else "31536000"))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = _env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", not DEBUG)
+SECURE_HSTS_PRELOAD = _env_bool("SECURE_HSTS_PRELOAD", not DEBUG)
