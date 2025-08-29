@@ -11,5 +11,4 @@ urlpatterns = [
     path("auth/jwt/create/", TokenObtainPairView.as_view(), name="jwt-create"),
     path("auth/jwt/refresh/", TokenRefreshView.as_view(), name="jwt-refresh"),
     path("", include(router.urls)),
-    path("api/", include("calendar_api.urls")),
 ]
