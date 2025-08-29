@@ -93,8 +93,9 @@ services:
         python manage.py collectstatic --noinput &&
         python manage.py migrate &&
         gunicorn calendar_project.wsgi:application --bind 0.0.0.0:8000 --workers 3
+
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/health/ || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS -H 'Host: cal-api.mon-site.ca' http://localhost:8000/api/health/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 12
