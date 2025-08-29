@@ -16,7 +16,8 @@ services:
       retries: 40
 
   backend:
-    image: ghcr.io/blues1961/calendrier-backend:${IMAGE_TAG}
+    #image: ghcr.io/blues1961/calendrier-backend:${IMAGE_TAG}
+    build: ./backend
     depends_on:
       db:
         condition: service_healthy
@@ -41,7 +42,7 @@ services:
       REFRESH_TOKEN_LIFETIME_DAYS: "7"
     # Exposé seulement en loopback (Apache reverse proxy)
     ports:
-      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:8002:8000"
     command: >
       bash -lc "
         python manage.py collectstatic --noinput &&
