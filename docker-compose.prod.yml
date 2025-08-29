@@ -16,13 +16,8 @@ services:
       retries: 40
 
   backend:
-    #image: ghcr.io/blues1961/calendrier-backend:${IMAGE_TAG}
+    # image: ghcr.io/blues1961/calendrier-backend:${IMAGE_TAG}
     build: ./backend
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health/ || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     depends_on:
       db:
         condition: service_healthy
@@ -48,12 +43,51 @@ services:
     # Exposé seulement en loopback (Apache reverse proxy)
     ports:
       - "127.0.0.1:8002:8000"
-    command: >
-      bash -lc "
+    command: |
+      bash -lc '
+        echo "[boot] Attente DNS pour db...";
+        for i in {1..30}; do
+          python - << "PY"
+          import os, socket, sys
+          host = os.environ.get("DB_HOST", "db")
+          try:
+              socket.gethostbyname(host)
+              print("[boot] DNS OK:", host)
+              sys.exit(0)
+          except Exception as e:
+            print("[boot] DNS pas prêt:", e)
+            sys.exit(1)
+          PY
+          if [ $? -eq 0 ]; then break; fi
+          sleep 2
+        done
+
+        echo "[boot] Test connexion Postgres...";
+        python - << "PY"
+      import os, sys, time
+      import psycopg
+      host = os.environ.get("DB_HOST","db")
+      port = int(os.environ.get("DB_PORT","5432"))
+      user = os.environ.get("POSTGRES_USER")
+      pwd  = os.environ.get("POSTGRES_PASSWORD")
+      db   = os.environ.get("POSTGRES_DB")
+      for i in range(30):
+      try:
+        with psycopg.connect(host=host, port=port, user=user, password=pwd, dbname=db, connect_timeout=3) as conn:
+            print("[boot] Connexion Postgres OK")
+            sys.exit(0)
+      except Exception as e:
+        print("[boot] Postgres pas prêt:", e)
+        time.sleep(2)
+        print("[boot] Abandon (DB indisponible).")
+        sys.exit(1)
+      PY
+
+        echo "[boot] collectstatic + migrate + gunicorn";
         python manage.py collectstatic --noinput &&
         python manage.py migrate &&
         gunicorn calendar_project.wsgi:application --bind 0.0.0.0:8000 --workers 3
-      "
+      '
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/health/ || exit 1"]
       interval: 10s
