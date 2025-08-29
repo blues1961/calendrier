@@ -2,11 +2,13 @@
 # Environnements et secrets
 # ============================
 .env
-.env.*        # .env.dev, .env.prod
+.env.*       
 *.bak
 *.sql
 *.dump
 *.tar.gz
+.env.dev
+.env.prod
 
 # ============================
 # Python / Django
@@ -59,6 +61,7 @@ yarn-error.log*
 *.swo
 .DS_Store
 Thumbs.db
+*lock.json
 
 # ============================
 # Docker
