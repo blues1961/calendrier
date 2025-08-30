@@ -41,6 +41,8 @@ jobs:
           # Optionnel: test SSH connection to verify key works
           ssh -T -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}
 
+   
+
       - name: Prepare remote dir
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -48,9 +50,11 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            sudo mkdir -p /var/www/cal.mon-site.ca/public_html
-            sudo chown $USER:$USER /var/www/cal.mon-site.ca/public_html
-            sudo chmod 755 /var/www/cal.mon-site.ca/public_html
+            mkdir -p /var/www/cal.mon-site.ca/public_html
+            chown $USER:$USER /var/www/cal.mon-site.ca/public_html
+            chmod 755 /var/www/cal.mon-site.ca/public_html
+
+
 
       - name: Rsync dist/ to server
         run: |
