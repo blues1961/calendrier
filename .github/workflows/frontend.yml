@@ -17,8 +17,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-        # cache: "npm"
-        # cache-dependency-path: frontend/package-lock.json  # Commenté pour éviter l'erreur
 
       - name: Install & build (Vite)
         working-directory: frontend
@@ -27,6 +25,13 @@ jobs:
         run: |
           npm ci
           npm run build
+
+      - name: Set up SSH key
+        run: |
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          # Vérifie que la clé privée est correctement configurée
+          ssh -T -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}
 
       - name: Prepare remote dir
         uses: appleboy/ssh-action@v1.2.0
@@ -37,13 +42,11 @@ jobs:
           script: |
             sudo mkdir -p /var/www/cal.mon-site.ca/public_html
             sudo chown $USER:$USER /var/www/cal.mon-site.ca/public_html
-            sudo chmod 755 /var/www/cal.mon-site.ca/public_html  # Ajout d'une permission correcte
+            sudo chmod 755 /var/www/cal.mon-site.ca/public_html
 
       - name: Rsync dist/ to server
         run: |
           rsync -avz --delete frontend/dist/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/var/www/cal.mon-site.ca/public_html/
-        env:
-          SSH_AUTH_SOCK: /tmp/ssh_auth_sock
 
     concurrency:
       group: deploy-frontend
