@@ -1,6 +1,7 @@
 name: backend-ci-cd
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main ]
     paths:
