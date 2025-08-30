@@ -38,17 +38,9 @@ jobs:
             sudo mkdir -p /var/www/cal.mon-site.ca/public_html
             sudo chown $USER:$USER /var/www/cal.mon-site.ca/public_html
 
-      - name: rsync dist/ to server
-        uses: appleboy/rsync-action@v0.0.4
-
-
-        with:
-          switches: -avz --delete
-          path: frontend/dist/
-          remote_path: /var/www/cal.mon-site.ca/public_html/
-          remote_host: ${{ secrets.SSH_HOST }}
-          remote_user: ${{ secrets.SSH_USER }}
-          remote_key: ${{ secrets.SSH_KEY }}
+      - name: Rsync dist/ to server
+        run: |
+          rsync -avz --delete frontend/dist/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/var/www/cal.mon-site.ca/public_html/
 
     concurrency:
       group: deploy-frontend
