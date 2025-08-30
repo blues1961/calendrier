@@ -37,10 +37,13 @@ jobs:
           script: |
             sudo mkdir -p /var/www/cal.mon-site.ca/public_html
             sudo chown $USER:$USER /var/www/cal.mon-site.ca/public_html
+            sudo chmod 755 /var/www/cal.mon-site.ca/public_html  # Ajout d'une permission correcte
 
       - name: Rsync dist/ to server
         run: |
           rsync -avz --delete frontend/dist/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/var/www/cal.mon-site.ca/public_html/
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_auth_sock
 
     concurrency:
       group: deploy-frontend
