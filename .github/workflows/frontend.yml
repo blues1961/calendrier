@@ -39,7 +39,8 @@ jobs:
             sudo chown $USER:$USER /var/www/cal.mon-site.ca/public_html
 
       - name: rsync dist/ to server
-        uses: burnett01/rsync-deployments@latest
+        uses: burnett01/rsync-deployments@v5.2.4
+
         with:
           switches: -avz --delete
           path: frontend/dist/
