@@ -102,6 +102,13 @@ CORS_ALLOWED_ORIGINS = _split_env("CORS_ALLOWED_ORIGINS")  # p.ex. https://cal.m
 CSRF_TRUSTED_ORIGINS = _split_env("CSRF_TRUSTED_ORIGINS")  # p.ex. https://cal.mon-site.ca, https://cal-api.mon-site.ca
 CORS_ALLOW_CREDENTIALS = True  # utile si un jour cookies/headers auth inter-sites
 
+# Defaults CORS pratiques en DEV si rien n'est passé par l'env
+if DEBUG and not CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+    ]
+
 # --- Reverse proxy TLS (Apache) : indique à Django que la requête est en HTTPS
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
