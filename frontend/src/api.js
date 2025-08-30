@@ -3,8 +3,9 @@ import axios from 'axios'
 const API_BASE = import.meta.env.VITE_API_BASE
 const instance = axios.create({ baseURL: `${API_BASE}/api/` })
 
-function getAccess() { return localStorage.getItem('access') }
-function setTokens({ access, refresh }) { localStorage.setItem('access', access); localStorage.setItem('refresh', refresh) }
+function getAccess(){ return localStorage.getItem('access') }
+function setTokens({ access, refresh }){ localStorage.setItem('access', access); localStorage.setItem('refresh', refresh) }
+function clearTokens(){ localStorage.removeItem('access'); localStorage.removeItem('refresh') }
 
 instance.interceptors.request.use((config) => {
   const token = getAccess()
@@ -18,6 +19,10 @@ export const api = {
       const { data } = await instance.post('auth/jwt/create/', { username, password })
       setTokens(data)
       return data
+    },
+    logout: () => {
+      clearTokens()
+      window.dispatchEvent(new Event('storage'))
     }
   },
   calendars: {

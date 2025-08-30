@@ -20,7 +20,10 @@ export default function CalendarBoard(){
 
   return (
     <div style={{ padding: 16 }}>
-      <h2>Mes calendriers</h2>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+        <h2>Mes calendriers</h2>
+        <button onClick={() => api.auth.logout()}>Se déconnecter</button>
+      </div>
       <ul>{cals.map(c => <li key={c.id}><span style={{ background:c.color, display:'inline-block', width:12, height:12, marginRight:6 }} />{c.name}</li>)}</ul>
       <Calendar
         localizer={localizer}
