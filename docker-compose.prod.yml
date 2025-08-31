@@ -1,16 +1,15 @@
 version: "3.9"
 
 services:
-  db:
+  cal_db:
     image: postgres:16
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - db_data_prod:/var/lib/postgresql/data
-    networks:
-      - internal
+      - cal_db_data:/var/lib/postgresql/data
+    networks: [internal]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -18,24 +17,42 @@ services:
       retries: 40
     restart: unless-stopped
 
-  backend:
-    # L'image est publiée par le workflow backend.yml sur GHCR
+  cal_backend:
+    # Image publiée par GitHub Actions (recommandé en prod)
     image: ghcr.io/${REPO_OWNER:-blues1961}/calendrier-backend:${IMAGE_TAG:-latest}
     env_file:
       - .env.prod
     depends_on:
-      db:
+      cal_db:
         condition: service_healthy
+    # Exposé en loopback pour Apache (reverse-proxy TLS)
     ports:
-      # Exposé seulement en local pour le reverse proxy Apache
-      - "127.0.0.1:8002:8000"
+      - "127.0.0.1:8004:8000"
     volumes:
-      # Si tu fais collectstatic, laisse un dossier pour que ce soit persistant
+      # Optionnel si tu utilises collectstatic
       - /opt/apps/calendrier/staticfiles:/app/staticfiles
-    networks:
-      - internal
+    networks: [internal]
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS -H 'Host: cal-api.mon-site.ca' -H 'X-Forwarded-Proto: https' http://localhost:8000/api/health/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  cal_frontend:
+    # Image publiée par GitHub Actions (build Vite + Nginx)
+    image: ghcr.io/${REPO_OWNER:-blues1961}/calendrier-frontend:${IMAGE_TAG:-latest}
+    # Si tu n'as pas encore de pipeline d'image, remplace par:
+    # build:
+    #   context: ./frontend
+    #   dockerfile: Dockerfile
+    #   args:
+    #     VITE_API_BASE: ${CAL_VITE_API_BASE}
+    ports:
+      - "127.0.0.1:8082:80"   # Apache proxy vers 8082
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/ >/dev/null 2>&1 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -45,4 +62,4 @@ networks:
   internal:
 
 volumes:
-  db_data_prod:
+  cal_db_data:
