@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:16
+    container_name: cal_db_dev
     ports:
       - "5433:5432"
     environment:
@@ -15,8 +16,9 @@ services:
       timeout: 3s
       retries: 40
 
-  backend:
+  cal_backend:
     build: ./backend
+    container_name: cal_backend_dev
     depends_on:
       db:
         condition: service_healthy
@@ -35,32 +37,36 @@ services:
     volumes:
       - ./backend:/app
     ports:
-      - "8002:8000"
+      - "8004:8000"
     command: ["bash","-lc","python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
 
-  frontend:
-    build: ./frontend
+  cal_vite:
+    image: node:20-bookworm-slim
+    container_name: cal_vite_dev
+    working_dir: /usr/src/app
     environment:
-      VITE_API_BASE: ${API_BASE}
+      VITE_API_BASE: ${CAL_VITE_API_BASE}
     volumes:
       - ./frontend:/usr/src/app
-      - /usr/src/app/node_modules
+      - cal_node_modules:/usr/src/app/node_modules
     ports:
-      - "5174:5173"
-    command: ["bash","-lc","npm install && npm run dev -- --host 0.0.0.0 --port 5173"]
-  
+      - "5174:5173"  # Vite dev server (HMR)
+    command: ["bash","-lc","npm ci && npm run dev -- --host 0.0.0.0 --port 5173"]
+    restart: unless-stopped
+
   cal_frontend:
     build:
       context: ./frontend
+    # Dockerfile existant (multi-étapes build Vite -> Nginx)
       dockerfile: Dockerfile
       args:
         VITE_API_BASE: ${CAL_VITE_API_BASE}
     image: cal-frontend:dev
     container_name: cal_frontend_dev
     ports:
-      - "127.0.0.1:5175:80"
+      - "127.0.0.1:5175:80"   # Nginx statique (parité prod)
     restart: unless-stopped
-
 
 volumes:
   db_data_dev:
+  cal_node_modules:
