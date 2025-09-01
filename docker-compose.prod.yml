@@ -29,7 +29,8 @@ services:
     ports:
       - "127.0.0.1:8004:8000"
     networks: [internal]
-    # (on ne le démarre PAS dans cette étape)
+    #  démarre proprement : migrations puis gunicorn en écoute globale
+    command: ["bash","-lc","python manage.py migrate && gunicorn calendar_project.wsgi:application -b 0.0.0.0:8000 --workers 2 --timeout 60"]
     restart: unless-stopped
 
   cal_frontend:
