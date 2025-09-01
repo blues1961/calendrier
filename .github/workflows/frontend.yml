@@ -1,65 +1,54 @@
-name: frontend-ci-cd
-
+name: build-push-frontend
 on:
   push:
     branches: [ main ]
     paths:
-      - "frontend/**"
-      - ".github/workflows/frontend.yml"
+      - 'frontend/**'
+      - 'frontend/Dockerfile'
+      - '.github/workflows/frontend.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/calendrier-frontend
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
         with:
-          node-version: "20"
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install & build (Vite)
-        working-directory: frontend
-        env:
-          VITE_API_BASE: https://cal-api.mon-site.ca
-        run: |
-          npm ci
-          npm run build
-
-      - name: Ensure ~/.ssh exists
-        run: mkdir -p ~/.ssh
-
-      - name: Add remote host to known_hosts
-        run: |
-          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Set up SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          # Optionnel: test SSH connection to verify key works
-          ssh -T -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}
-
-   
-
-      - name: Prepare remote dir
-        uses: appleboy/ssh-action@v1.2.0
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            mkdir -p /var/www/cal.mon-site.ca/public_html
-            chown $USER:$USER /var/www/cal.mon-site.ca/public_html
-            chmod 755 /var/www/cal.mon-site.ca/public_html
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=sha
 
-
-
-      - name: Rsync dist/ to server
-        run: |
-          rsync -avz --delete frontend/dist/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/var/www/cal.mon-site.ca/public_html/
-
-    concurrency:
-      group: deploy-frontend
-      cancel-in-progress: true
+      - name: Build & Push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          build-args: |
+            VITE_API_BASE=${{ vars.CAL_VITE_API_BASE }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
