@@ -2,14 +2,13 @@
 # Environnements et secrets
 # ============================
 .env
-.env.dev
-.env.prod     
+.env.*
+# Autoriser l'exemple d'env prod
+!.env.prod.example
 *.bak
 *.sql
 *.dump
 *.tar.gz
-.env.dev
-.env.prod
 
 # ============================
 # Python / Django
