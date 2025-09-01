@@ -3,6 +3,7 @@ version: "3.9"
 services:
   cal_db:
     image: postgres:16
+    container_name: cal_db_prod
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -18,44 +19,27 @@ services:
     restart: unless-stopped
 
   cal_backend:
-    # Image publiée par GitHub Actions (recommandé en prod)
     image: ghcr.io/${REPO_OWNER:-blues1961}/calendrier-backend:${IMAGE_TAG:-latest}
+    container_name: cal_backend_prod
     env_file:
       - .env.prod
     depends_on:
       cal_db:
         condition: service_healthy
-    # Exposé en loopback pour Apache (reverse-proxy TLS)
     ports:
       - "127.0.0.1:8004:8000"
-    volumes:
-      # Optionnel si tu utilises collectstatic
-      - /opt/apps/calendrier/staticfiles:/app/staticfiles
     networks: [internal]
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -H 'Host: cal-api.mon-site.ca' -H 'X-Forwarded-Proto: https' http://localhost:8000/api/health/ || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
+    # (on ne le démarre PAS dans cette étape)
     restart: unless-stopped
 
   cal_frontend:
-    # Image publiée par GitHub Actions (build Vite + Nginx)
     image: ghcr.io/${REPO_OWNER:-blues1961}/calendrier-frontend:${IMAGE_TAG:-latest}
-    # Si tu n'as pas encore de pipeline d'image, remplace par:
-    # build:
-    #   context: ./frontend
-    #   dockerfile: Dockerfile
-    #   args:
-    #     VITE_API_BASE: ${CAL_VITE_API_BASE}
+    container_name: cal_frontend_prod
+    # Si pas encore d’image dans GHCR, on construira localement au déploiement
     ports:
-      - "127.0.0.1:8082:80"   # Apache proxy vers 8082
+      - "127.0.0.1:8082:80"     # Apache proxy vers 8082
     networks: [internal]
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost/ >/dev/null 2>&1 || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
+    # healthcheck retiré (nginx:alpine n’a pas curl/wget par défaut)
     restart: unless-stopped
 
 networks:
