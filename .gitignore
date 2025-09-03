@@ -70,3 +70,12 @@ Thumbs.db
 *.seed
 *.pid.lock
 docker-compose.override.yml
+
+# env locaux (jamais versionner)
+.env.local
+
+# local env
+.env.local
+frontend/.env.development.local
+# backups
+backups/
