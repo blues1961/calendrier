@@ -5,6 +5,8 @@
 .env.*
 # Autoriser l'exemple d'env prod
 !.env.prod.example
+.env.prod.local
+.env.local
 *.bak
 *.sql
 *.dump

@@ -16,7 +16,7 @@ services:
       timeout: 3s
       retries: 40
 
-  cal_backend:
+  backend:
     build: ./backend
     container_name: cal_backend_dev
     depends_on:
@@ -40,7 +40,7 @@ services:
       - "8004:8000"
     command: ["bash","-lc","python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
 
-  cal_vite:
+  vite:
     image: node:20-bookworm-slim
     container_name: cal_vite_dev
     working_dir: /usr/src/app
@@ -54,7 +54,7 @@ services:
     command: ["bash","-lc","npm ci && npm run dev -- --host 0.0.0.0 --port 5173"]
     restart: unless-stopped
 
-  cal_frontend:
+  frontend:
     build:
       context: ./frontend
     # Dockerfile existant (multi-étapes build Vite -> Nginx)
