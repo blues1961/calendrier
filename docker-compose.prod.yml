@@ -12,12 +12,12 @@ services:
       DB_USER: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
     depends_on: [db]
-    networks: [appnet, edge]
     labels:
       - traefik.enable=true
-      - traefik.http.routers.cal_api.rule=Host(`cal-api.mon-site.ca`)
-      - traefik.http.routers.cal_api.entrypoints=web
-      - traefik.http.services.cal_api.loadbalancer.server.port=8000
+      - traefik.docker.network=edge              # <== AJOUT ICI
+      - traefik.http.routers.mdp_api.rule=Host(`mdp-api.mon-site.ca`)
+      - traefik.http.routers.mdp_api.entrypoints=web
+      - traefik.http.services.mdp_api.loadbalancer.server.port=8000
     command: >
       bash -lc "
         python manage.py migrate &&
@@ -30,9 +30,9 @@ services:
     build: { context: frontend, dockerfile: Dockerfile }
     container_name: ${APP_SLUG}_frontend_prod
     depends_on: [backend]
-    networks: [appnet, edge]
     labels:
       - traefik.enable=true
+      - traefik.docker.network=edge 
       - traefik.http.routers.cal_front.rule=Host(`cal.mon-site.ca`)
       - traefik.http.routers.cal_front.entrypoints=web
       - traefik.http.services.cal_front.loadbalancer.server.port=80
