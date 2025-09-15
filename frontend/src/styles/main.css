@@ -43,3 +43,7 @@ button{padding:8px}
   from { transform: translateY(4px) scale(.98); opacity:.0 }
   to   { transform: translateY(0)   scale(1);   opacity:1 }
 }
+
+/* Évènements du calendrier: lisibilité et arrondis */
+.rbc-event { border-radius: 6px; border-width: 1px; padding: 2px 6px; font-weight: 600; }
+.rbc-day-slot .rbc-event { border-width: 1px; }
