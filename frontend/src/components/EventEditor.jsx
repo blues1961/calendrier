@@ -64,25 +64,34 @@ export default function EventEditor({ event, calendars = [], onCancel, onSave, o
       }
 
       if (creating && repeat) {
-        // Génère les occurrences hebdomadaires à partir de la date/heure de départ
-        const start0 = new Date(form.start)
+        // Génère les occurrences hebdo en préservant le jour de la semaine (local),
+        // sans dérive lors des changements d'heure (DST).
+        const start0 = new Date(form.start)                 // local
         const end0 = new Date(form.end || form.start)
-        const dur = end0 - start0
+        const baseDay = new Date(start0.getFullYear(), start0.getMonth(), start0.getDate())
+        const startMin = start0.getHours() * 60 + start0.getMinutes()
+        const durMin = Math.max(1, Math.round((end0 - start0) / 60000))
+
+        const addWeeksLocal = (d, w) => { const r = new Date(d); r.setDate(r.getDate() + w * 7); return r }
+
         const out = []
         let weekOffset = 0
         segments.forEach(seg => {
-          for (let i = 0; i < Number(seg.count||0); i++) {
-            const st = new Date(start0.getTime() + (weekOffset + i) * 7 * 24 * 3600 * 1000)
-            const en = new Date(st.getTime() + dur)
+          const count = Number(seg.count || 0)
+          const gap = Number(seg.gap || 0)
+          for (let i = 0; i < count; i++) {
+            const day = addWeeksLocal(baseDay, weekOffset + i)
             if (form.all_day) {
-              const ss = new Date(st); ss.setHours(0,1,0,0)
-              const ee = new Date(st); ee.setHours(23,59,0,0)
+              const ss = new Date(day); ss.setHours(0,1,0,0)   // 00:01 local
+              const ee = new Date(day); ee.setHours(23,59,0,0) // 23:59 local
               out.push({ ...base, start: ss.toISOString(), end: ee.toISOString() })
             } else {
+              const start = new Date(day); start.setHours(0,0,0,0); const st = new Date(start.getTime() + startMin*60000)
+              const en = new Date(st.getTime() + durMin*60000)
               out.push({ ...base, start: st.toISOString(), end: en.toISOString() })
             }
           }
-          weekOffset += Number(seg.count||0) + Number(seg.gap||0)
+          weekOffset += count + gap
         })
         await onSave?.(base, { occurrences: out })
       } else {
