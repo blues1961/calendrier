@@ -1,72 +1,56 @@
 services:
   db:
     image: postgres:16
-    container_name: cal_db_dev
+    container_name: ${APP_SLUG}_db_${APP_ENV}
+    env_file:
+      - .env.dev
+      - .env.dev.local
     ports:
-      - "5433:5432"
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      - "${DEV_DB_PORT}:5432"
     volumes:
-      - db_data_dev:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h 127.0.0.1"]
       interval: 5s
       timeout: 3s
       retries: 40
 
   backend:
-    build: ./backend
-    container_name: cal_backend_dev
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: ${APP_SLUG}_backend_${APP_ENV}
+    env_file:
+      - .env.dev
+      - .env.dev.local
     depends_on:
       db:
         condition: service_healthy
-    environment:
-      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
-      DJANGO_DEBUG: ${DJANGO_DEBUG}
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_HOST: ${DB_HOST}
-      DB_PORT: ${DB_PORT}
-      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
-      ACCESS_TOKEN_LIFETIME_MIN: ${ACCESS_TOKEN_LIFETIME_MIN}
-      REFRESH_TOKEN_LIFETIME_DAYS: ${REFRESH_TOKEN_LIFETIME_DAYS}
     volumes:
       - ./backend:/app
     ports:
-      - "8004:8000"
+      - "${DEV_API_PORT}:8000"
     command: ["bash","-lc","python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
 
   vite:
     image: node:20-bookworm-slim
-    container_name: cal_vite_dev
-    working_dir: /usr/src/app
+    container_name: ${APP_SLUG}_vite_${APP_ENV}
+    working_dir: /app
+    env_file:
+      - .env.dev
+      - .env.dev.local
     environment:
-      VITE_API_BASE: ${CAL_VITE_API_BASE}
+      VITE_API_BASE: "/api"
     volumes:
-      - ./frontend:/usr/src/app
-      - cal_node_modules:/usr/src/app/node_modules
+      - ./frontend:/app
+      - node_modules:/app/node_modules
     ports:
-      - "5174:5173"  # Vite dev server (HMR)
-    command: ["bash","-lc","npm ci && npm run dev -- --host 0.0.0.0 --port 5173"]
-    restart: unless-stopped
-
-  frontend:
-    build:
-      context: ./frontend
-    # Dockerfile existant (multi-étapes build Vite -> Nginx)
-      dockerfile: Dockerfile
-      args:
-        VITE_API_BASE: ${CAL_VITE_API_BASE}
-    image: cal-frontend:dev
-    container_name: cal_frontend_dev
-    ports:
-      - "127.0.0.1:5175:80"   # Nginx statique (parité prod)
+      - "${DEV_VITE_PORT}:5173"  # Vite dev server (HMR)
+    command: ["bash","-lc","( [ -d node_modules ] && [ -f node_modules/.ready ] ) || (npm ci || npm install; touch node_modules/.ready); npm run dev -- --host 0.0.0.0 --port 5173"]
     restart: unless-stopped
 
 volumes:
-  db_data_dev:
-  cal_node_modules:
+  pgdata:
+    name: ${APP_SLUG}_${APP_ENV}_pgdata
+  node_modules:
+    name: ${APP_SLUG}_${APP_ENV}_node_modules

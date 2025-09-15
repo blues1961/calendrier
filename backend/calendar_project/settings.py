@@ -9,7 +9,22 @@ def _split_env(name: str, default: str = ""):
     return [x.strip() for x in os.environ.get(name, default).split(",") if x.strip()]
 
 def _env_bool(name: str, default: bool = False):
-    return bool(int(os.environ.get(name, "1" if default else "0")))
+    val = os.environ.get(name)
+    if val is None or val == "":
+        return default
+    try:
+        return bool(int(val))
+    except Exception:
+        return default
+
+def _env_int(name: str, default: int):
+    val = os.environ.get(name)
+    if val is None or val == "":
+        return default
+    try:
+        return int(val)
+    except Exception:
+        return default
 
 # --- Core
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "change-me")
@@ -96,10 +111,10 @@ REST_FRAMEWORK = {
 # --- Auth (JWT)
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(
-        minutes=int(os.environ.get("ACCESS_TOKEN_LIFETIME_MIN", 60))
+        minutes=_env_int("ACCESS_TOKEN_LIFETIME_MIN", 60)
     ),
     "REFRESH_TOKEN_LIFETIME": timedelta(
-        days=int(os.environ.get("REFRESH_TOKEN_LIFETIME_DAYS", 7))
+        days=_env_int("REFRESH_TOKEN_LIFETIME_DAYS", 7)
     ),
 }
 
@@ -108,12 +123,20 @@ CORS_ALLOWED_ORIGINS = _split_env("CORS_ALLOWED_ORIGINS")  # p.ex. https://cal.m
 CSRF_TRUSTED_ORIGINS = _split_env("CSRF_TRUSTED_ORIGINS")  # p.ex. https://cal.mon-site.ca, https://cal-api.mon-site.ca
 CORS_ALLOW_CREDENTIALS = True  # utile si un jour cookies/headers auth inter-sites
 
-# Defaults CORS pratiques en DEV si rien n'est passé par l'env
-if DEBUG and not CORS_ALLOWED_ORIGINS:
-    CORS_ALLOWED_ORIGINS = [
-        "http://localhost:5174",
-        "http://127.0.0.1:5174",
-    ]
+# Defaults CORS/CSRF pratiques en DEV si rien n'est passé par l'env
+if DEBUG:
+    if not CORS_ALLOWED_ORIGINS:
+        vite_port = os.environ.get("DEV_VITE_PORT", "5173")
+        front_origin = os.environ.get("FRONT_ORIGIN", f"http://localhost:{vite_port}")
+        CORS_ALLOWED_ORIGINS = [front_origin]
+    if not CSRF_TRUSTED_ORIGINS:
+        vite_port = os.environ.get("DEV_VITE_PORT", "5173")
+        CSRF_TRUSTED_ORIGINS = [
+            "http://localhost",
+            "http://127.0.0.1",
+            f"http://localhost:{vite_port}",
+            f"http://127.0.0.1:{vite_port}",
+        ]
 
 # --- Reverse proxy TLS (Apache) : indique à Django que la requête est en HTTPS
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
