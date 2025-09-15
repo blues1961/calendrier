@@ -66,6 +66,7 @@ export const api = {
     list: async () => (await instance.get('calendars/')).data,
     create: async (payload) => (await instance.post('calendars/', payload)).data,
     update: async (id, payload) => (await instance.patch(`calendars/${id}/`, payload)).data,
+    remove: async (id) => (await instance.delete(`calendars/${id}/`)).data,
   },
   events: {
     list: async () => (await instance.get('events/')).data,

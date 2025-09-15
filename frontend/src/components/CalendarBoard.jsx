@@ -45,6 +45,19 @@ export default function CalendarBoard(){
       setEvents(es.map(e => ({ ...e, start: new Date(e.start), end: new Date(e.end) })))
   })() }, [])
 
+  async function reloadData({ removedId } = {}){
+    const [cs, es] = await Promise.all([api.calendars.list(), api.events.list()])
+    setCals(cs)
+    setSelected(prev => {
+      const s = new Set(prev)
+      if (removedId != null) s.delete(removedId)
+      // Nettoie les IDs qui n'existent plus
+      for (const id of Array.from(s)) { if (!cs.find(c => c.id === id)) s.delete(id) }
+      return s
+    })
+    setEvents(es.map(e => ({ ...e, start: new Date(e.start), end: new Date(e.end) })))
+  }
+
   const visibleEvents = useMemo(() => {
     if (!events.length) return []
     if (!selected || selected.size === 0) return []
@@ -71,6 +84,8 @@ export default function CalendarBoard(){
     // Persist backend
     await Promise.allSettled(toUnset.map(c => api.calendars.update(c.id, { is_default: false })))
   }
+
+  const getEventCalendarId = (e) => (typeof e.calendar === 'number' ? e.calendar : (e.calendar_id ?? (e.calendar && e.calendar.id)))
 
   return (
     <div style={{ display:'grid', gridTemplateColumns:'260px 1fr', gap:16, padding:16, minHeight:'calc(100vh - 56px)' }}>
@@ -111,6 +126,14 @@ export default function CalendarBoard(){
               await ensureSingleDefault(updated)
               setCals(prev => prev.map(x => x.id === updated.id ? updated : x))
               setEditingCal(null)
+            }}
+            onDelete={async () => {
+              if (!editingCal?.id) return
+              const ok = window.confirm('Supprimer ce calendrier et tous ses événements ? Cette action est définitive.')
+              if (!ok) return
+              await api.calendars.remove(editingCal.id)
+              setEditingCal(null)               // ferme la modale
+              await reloadData({ removedId: editingCal.id }) // rafraîchit liste + événements
             }}
           />
         )}

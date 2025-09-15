@@ -22,6 +22,8 @@ button{padding:8px}
 .modal > h3 { grid-column: 1 / -1; margin: 4px 0 8px; }
 .modal-actions { grid-column: 1 / -1; display:flex; gap:10px; justify-content:flex-end; margin-top: 4px; }
 .btn-secondary { background:#0f1218; color:#cfd6e4; border:1px solid #2a2d36; }
+.btn-danger { background:#7e1b34; color:#fff; border:1px solid #5b1326; }
+.btn-danger:hover { background:#8f213d; border-color:#6b172c; }
 
 /* Inputs/select dans la modale */
 .modal input[type="text"], .modal input[type="password"], .modal input[type="datetime-local"], .modal select, .modal textarea {

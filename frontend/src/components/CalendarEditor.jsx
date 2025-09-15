@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react'
 
-export default function CalendarEditor({ calendar, onCancel, onSave, title = 'Modifier le calendrier' }){
+export default function CalendarEditor({ calendar, onCancel, onSave, onDelete, title = 'Modifier le calendrier' }){
   const [name, setName] = useState(calendar?.name || '')
   const [color, setColor] = useState(calendar?.color || '#1976d2')
   const [isDefault, setIsDefault] = useState(!!calendar?.is_default)
@@ -37,9 +37,16 @@ export default function CalendarEditor({ calendar, onCancel, onSave, title = 'Mo
         <label htmlFor="cal-default">Par défaut</label>
         <input id="cal-default" type="checkbox" checked={isDefault} onChange={e=>setIsDefault(e.target.checked)} />
 
-        <div className="modal-actions">
-          <button type="button" className="btn-secondary" onClick={onCancel} disabled={saving}>Annuler</button>
-          <button type="submit" disabled={!canSave || saving}>Enregistrer</button>
+        <div className="modal-actions" style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <div>
+            {calendar?.id && onDelete && (
+              <button type="button" className="btn-danger" onClick={onDelete} disabled={saving}>Supprimer le calendrier</button>
+            )}
+          </div>
+          <div style={{ display:'flex', gap:10 }}>
+            <button type="button" className="btn-secondary" onClick={onCancel} disabled={saving}>Annuler</button>
+            <button type="submit" disabled={!canSave || saving}>Enregistrer</button>
+          </div>
         </div>
       </form>
     </div>
