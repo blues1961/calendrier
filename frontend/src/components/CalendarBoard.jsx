@@ -5,8 +5,30 @@ import fr from 'date-fns/locale/fr'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 import { api } from '../api'
 
-const locales = { 'fr': fr }
-const localizer = dateFnsLocalizer({ format, parse, startOfWeek: () => startOfWeek(new Date(), { weekStartsOn: 1 }), getDay, locales })
+const locales = { fr }
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek: () => startOfWeek(new Date(), { weekStartsOn: 1 }),
+  getDay,
+  locales,
+})
+
+const messages = {
+  allDay: 'Toute la journée',
+  previous: 'Préc.',
+  next: 'Suiv.',
+  today: 'Aujourd’hui',
+  month: 'Mois',
+  week: 'Semaine',
+  day: 'Jour',
+  agenda: 'Agenda',
+  date: 'Date',
+  time: 'Heure',
+  event: 'Événement',
+  showMore: total => `+ ${total} de plus`,
+  noEventsInRange: 'Aucun événement',
+}
 
 export default function CalendarBoard(){
   const [cals, setCals] = useState([])
@@ -27,6 +49,8 @@ export default function CalendarBoard(){
       <ul>{cals.map(c => <li key={c.id}><span style={{ background:c.color, display:'inline-block', width:12, height:12, marginRight:6 }} />{c.name}</li>)}</ul>
       <Calendar
         localizer={localizer}
+        culture="fr"
+        messages={messages}
         events={events}
         startAccessor="start"
         endAccessor="end"
