@@ -41,21 +41,31 @@ export default function CalendarBoard(){
   })() }, [])
 
   return (
-    <div style={{ padding: 16 }}>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-        <h2>Mes calendriers</h2>
-        <button onClick={() => api.auth.logout()}>Se déconnecter</button>
-      </div>
-      <ul>{cals.map(c => <li key={c.id}><span style={{ background:c.color, display:'inline-block', width:12, height:12, marginRight:6 }} />{c.name}</li>)}</ul>
-      <Calendar
-        localizer={localizer}
-        culture="fr"
-        messages={messages}
-        events={events}
-        startAccessor="start"
-        endAccessor="end"
-        style={{ height: '80vh', marginTop: 16 }}
-      />
+    <div style={{ display:'grid', gridTemplateColumns:'260px 1fr', gap:16, padding:16, minHeight:'calc(100vh - 56px)' }}>
+      <aside style={{ borderRight:'1px solid #2a2d36', paddingRight:12 }}>
+        <h3 style={{ margin:'0 0 8px' }}>Calendriers</h3>
+        <ul style={{ listStyle:'none', padding:0, margin:0, display:'grid', gap:8 }}>
+          {cals.map(c => (
+            <li key={c.id} title={c.name} style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <span style={{ background:c.color, display:'inline-block', width:12, height:12, borderRadius:3 }} />
+              <span>{c.name}</span>
+            </li>
+          ))}
+          {!cals.length && <li style={{ opacity:.7 }}><em>Aucun calendrier</em></li>}
+        </ul>
+      </aside>
+
+      <main>
+        <Calendar
+          localizer={localizer}
+          culture="fr"
+          messages={messages}
+          events={events}
+          startAccessor="start"
+          endAccessor="end"
+          style={{ height: 'calc(100vh - 96px)', minHeight: 420 }}
+        />
+      </main>
     </div>
   )
 }
