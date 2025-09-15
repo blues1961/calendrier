@@ -1,7 +1,8 @@
 import axios from 'axios'
 
-const API_BASE = import.meta.env.VITE_API_BASE
-const instance = axios.create({ baseURL: `${API_BASE}/api/` })
+// Invariant: VITE_API_BASE est un chemin relatif (ex: "/api")
+const API_BASE = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '')
+const instance = axios.create({ baseURL: `${API_BASE}/` })
 
 function getAccess(){ return localStorage.getItem('access') }
 function setTokens({ access, refresh }){ localStorage.setItem('access', access); localStorage.setItem('refresh', refresh) }
