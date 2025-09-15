@@ -5,6 +5,7 @@ import fr from 'date-fns/locale/fr'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 import { api } from '../api'
 import CalendarEditor from './CalendarEditor'
+import EventEditor from './EventEditor'
 
 const locales = { fr }
 const localizer = dateFnsLocalizer({
@@ -37,6 +38,22 @@ export default function CalendarBoard(){
   const [selected, setSelected] = useState(new Set())
   const [creatingCal, setCreatingCal] = useState(false)
   const [editingCal, setEditingCal] = useState(null)
+  const [editingEvt, setEditingEvt] = useState(null)
+  const [view, setView] = useState('month')
+
+  // Tooltip enrichi: titre, lieu, notes, plage horaire
+  const EventWithTooltip = ({ event, title }) => {
+    const start = event.start instanceof Date ? event.start : new Date(event.start)
+    const end = event.end instanceof Date ? event.end : new Date(event.end)
+    const lines = [
+      title || event.title || '(sans titre)',
+      event.location ? String(event.location) : null,
+      event.description ? String(event.description) : null,
+      `${format(start, 'PP p', { locale: fr })} → ${format(end, 'PP p', { locale: fr })}`,
+    ].filter(Boolean)
+    const tip = lines.join('\n')
+    return <span title={tip}>{title}</span>
+  }
 
   useEffect(() => { (async () => {
       const [cs, es] = await Promise.all([api.calendars.list(), api.events.list()])
@@ -87,6 +104,35 @@ export default function CalendarBoard(){
 
   const getEventCalendarId = (e) => (typeof e.calendar === 'number' ? e.calendar : (e.calendar_id ?? (e.calendar && e.calendar.id)))
 
+  function startOfDay(d){ const x = new Date(d); x.setHours(0,1,0,0); return x }
+  function endOfDay(d){ const x = new Date(d); x.setHours(23,59,0,0); return x }
+
+  function handleSlotSelect(info){
+    // Crée un nouvel événement uniquement sur double-clic (si supporté), sinon ignorer
+    if (info?.action && info.action !== 'doubleClick') return
+    if (!cals.length) return
+    const defaultCal = (cals.find(c => c.is_default) || cals[0])
+    const start = new Date(info.start)
+    let isAllDay = (view === 'month') || ((info.end - info.start) >= 22*60*60*1000)
+    let evStart = isAllDay ? startOfDay(start) : start
+    let evEnd
+    if (isAllDay) {
+      evEnd = endOfDay(start)
+    } else {
+      const end = new Date(info.end || start)
+      // Si on a cliqué une case horaire, par défaut 1h
+      if (!info.end || (end <= start)) evEnd = new Date(start.getTime() + 60*60*1000)
+      else evEnd = end
+    }
+    setEditingEvt({
+      id: undefined,
+      title: '', description: '', location: '',
+      all_day: isAllDay,
+      start: evStart, end: evEnd,
+      calendar: defaultCal?.id,
+    })
+  }
+
   return (
     <div style={{ display:'grid', gridTemplateColumns:'260px 1fr', gap:16, padding:16, minHeight:'calc(100vh - 56px)' }}>
       <aside style={{ borderRight:'1px solid #2a2d36', paddingRight:12 }}>
@@ -115,8 +161,49 @@ export default function CalendarBoard(){
           events={visibleEvents}
           startAccessor="start"
           endAccessor="end"
+          selectable="ignoreEvents"
+          onSelectSlot={handleSlotSelect}
+          view={view}
+          onView={setView}
+          components={{ event: EventWithTooltip }}
+          onSelectEvent={(ev) => setEditingEvt(ev)}
           style={{ height: 'calc(100vh - 96px)', minHeight: 420 }}
         />
+        {editingEvt && (
+          <EventEditor
+            event={editingEvt}
+            calendars={cals}
+            title={editingEvt?.id ? 'Modifier l\u2019événement' : 'Nouvel événement'}
+            onCancel={() => setEditingEvt(null)}
+            onSave={async (payload, opts) => {
+              if (editingEvt?.id) {
+                const updated = await api.events.update(editingEvt.id, payload)
+                const mapped = { ...updated, start: new Date(updated.start), end: new Date(updated.end) }
+                setEvents(prev => prev.map(e => e.id === editingEvt.id ? mapped : e))
+              } else {
+                if (opts?.occurrences?.length) {
+                  const createdAll = await Promise.all(
+                    opts.occurrences.map(p => api.events.create(p))
+                  )
+                  const mappedAll = createdAll.map(x => ({ ...x, start: new Date(x.start), end: new Date(x.end) }))
+                  setEvents(prev => [...prev, ...mappedAll])
+                } else {
+                  const created = await api.events.create(payload)
+                  const mapped = { ...created, start: new Date(created.start), end: new Date(created.end) }
+                  setEvents(prev => [...prev, mapped])
+                }
+              }
+              setEditingEvt(null)
+            }}
+            onDelete={async () => {
+              const ok = window.confirm('Supprimer cet événement ? Cette action est définitive.')
+              if (!ok) return
+              await api.events.remove(editingEvt.id)
+              setEvents(prev => prev.filter(e => e.id !== editingEvt.id))
+              setEditingEvt(null)
+            }}
+          />
+        )}
         {editingCal && (
           <CalendarEditor
             calendar={editingCal}
