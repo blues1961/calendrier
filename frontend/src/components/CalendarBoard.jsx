@@ -133,6 +133,21 @@ export default function CalendarBoard(){
     })
   }
 
+  // Couleur d'arrière-plan des événements selon la couleur du calendrier
+  const eventPropGetter = (event) => {
+    const cid = getEventCalendarId(event)
+    const cal = cals.find(c => c.id === cid)
+    const bg = (event.color || cal?.color || '#4c8dff').toString()
+    // Choix de la couleur du texte selon luminosité
+    const hex = bg.startsWith('#') ? bg.slice(1) : bg
+    const r = parseInt(hex.substr(0,2),16) || 0
+    const g = parseInt(hex.substr(2,2),16) || 0
+    const b = parseInt(hex.substr(4,2),16) || 0
+    const luminance = (0.299*r + 0.587*g + 0.114*b) / 255
+    const fg = luminance > 0.6 ? '#111' : '#fff'
+    return { style: { backgroundColor: bg, borderColor: bg, color: fg } }
+  }
+
   return (
     <div style={{ display:'grid', gridTemplateColumns:'260px 1fr', gap:16, padding:16, minHeight:'calc(100vh - 56px)' }}>
       <aside style={{ borderRight:'1px solid #2a2d36', paddingRight:12 }}>
@@ -166,6 +181,7 @@ export default function CalendarBoard(){
           view={view}
           onView={setView}
           components={{ event: EventWithTooltip }}
+          eventPropGetter={eventPropGetter}
           onSelectEvent={(ev) => setEditingEvt(ev)}
           style={{ height: 'calc(100vh - 96px)', minHeight: 420 }}
         />
