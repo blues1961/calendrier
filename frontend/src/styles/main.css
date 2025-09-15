@@ -1,2 +1,43 @@
 html,body,#root{height:100%;margin:0;padding:0;font-family:system-ui,-apple-system,Segoe UI,Roboto}
-button,input{padding:8px}
+*{box-sizing:border-box}
+button{padding:8px}
+
+/* Modal centrée (style fiche) */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(7,10,14,.55);
+  backdrop-filter: blur(2px);
+  display:flex; align-items:center; justify-content:center; padding:24px; z-index: 9999;
+}
+.modal {
+  position: relative;
+  display: grid; grid-template-columns: 160px 1fr; gap: 12px 14px;
+  width:100%; max-width: 720px;
+  background: #151a22; color:#e9edf7;
+  border:1px solid #2c3340; border-radius:16px; padding: 18px 20px 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.03);
+  transform: translateY(0) scale(1);
+  animation: modal-in .15s ease-out;
+}
+.modal > h3 { grid-column: 1 / -1; margin: 4px 0 8px; }
+.modal-actions { grid-column: 1 / -1; display:flex; gap:10px; justify-content:flex-end; margin-top: 4px; }
+.btn-secondary { background:#0f1218; color:#cfd6e4; border:1px solid #2a2d36; }
+
+/* Inputs/select dans la modale */
+.modal input[type="text"], .modal input[type="password"], .modal input[type="datetime-local"], .modal select, .modal textarea {
+  width: 100%; padding: 10px 12px; border: 1px solid #2f3542; background:#0f1218; color:#e9edf7; border-radius: 8px; outline: none;
+}
+.modal input:focus, .modal select:focus, .modal textarea:focus { border-color:#4c8dff; box-shadow: 0 0 0 3px rgba(76,141,255,.15); }
+.modal input[type="checkbox"]{ padding:0; margin:0; width:auto; height:auto; justify-self:start; align-self:center; }
+.modal .modal-close{
+  position:absolute; top:10px; right:12px;
+  width:32px; height:32px; border-radius:8px;
+  display:inline-flex; align-items:center; justify-content:center;
+  border:1px solid #2a2d36; background:#0f1218; color:#cfd6e4; cursor:pointer;
+}
+.modal .modal-close:hover{ background:#16202e; border-color:#3b4658; }
+
+@keyframes modal-in {
+  from { transform: translateY(4px) scale(.98); opacity:.0 }
+  to   { transform: translateY(0)   scale(1);   opacity:1 }
+}
