@@ -18,7 +18,7 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     container_name: ${APP_SLUG}_backend_${APP_ENV}
     env_file:
       - .env.dev
