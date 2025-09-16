@@ -56,33 +56,31 @@ services:
       - edge
 
     labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=edge"
+        # HTTP -> HTTPS
+      - "traefik.http.routers.cal-api.rule=Host(`${APP_HOST}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.cal-api.entrypoints=web"
+      - "traefik.http.routers.cal-api.middlewares=cal-redirect-https"
+      - "traefik.http.routers.cal-api.priority=100"
 
-      # API (HTTPS)
+      - "traefik.http.routers.cal-admin.rule=Host(`${APP_HOST}`) && PathPrefix(`/admin`)"
+      - "traefik.http.routers.cal-admin.entrypoints=web"
+      - "traefik.http.routers.cal-admin.middlewares=cal-redirect-https"
+      - "traefik.http.routers.cal-admin.priority=100"
+
+      # HTTPS directs
       - "traefik.http.routers.cal-api-secure.rule=Host(`${APP_HOST}`) && PathPrefix(`/api`)"
       - "traefik.http.routers.cal-api-secure.entrypoints=websecure"
       - "traefik.http.routers.cal-api-secure.tls=true"
       - "traefik.http.routers.cal-api-secure.tls.certresolver=le"
-      - "traefik.http.routers.cal-api-secure.priority=20"
+      - "traefik.http.routers.cal-api-secure.priority=100"
       - "traefik.http.services.cal-api.loadbalancer.server.port=8000"
-       # ✅ NOUVEAU — API (HTTP) -> redirige vers HTTPS
-      - "traefik.http.routers.cal-api.rule=Host(`${APP_HOST}`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.cal-api.entrypoints=web"
-      - "traefik.http.routers.cal-api.middlewares=cal-redirect-https"
 
-      # Admin Django (HTTPS)
       - "traefik.http.routers.cal-admin-secure.rule=Host(`${APP_HOST}`) && PathPrefix(`/admin`)"
       - "traefik.http.routers.cal-admin-secure.entrypoints=websecure"
       - "traefik.http.routers.cal-admin-secure.tls=true"
       - "traefik.http.routers.cal-admin-secure.tls.certresolver=le"
-      - "traefik.http.routers.cal-admin-secure.priority=20"
+      - "traefik.http.routers.cal-admin-secure.priority=100"
       - "traefik.http.services.cal-admin.loadbalancer.server.port=8000"
-       # ✅ NOUVEAU — Admin (HTTP) -> redirige vers HTTPS
-      - "traefik.http.routers.cal-admin.rule=Host(`${APP_HOST}`) && PathPrefix(`/admin`)"
-      - "traefik.http.routers.cal-admin.entrypoints=web"
-      - "traefik.http.routers.cal-admin.middlewares=cal-redirect-https"
-
   frontend:
     build:
       context: ./frontend
@@ -114,23 +112,24 @@ services:
       - edge
 
     labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=edge"
+     - "traefik.enable=true"
+     - "traefik.docker.network=edge"
 
-      # HTTP -> HTTPS
-      - "traefik.http.routers.cal-web.rule=Host(`${APP_HOST}`)"
-      - "traefik.http.routers.cal-web.entrypoints=web"
-      - "traefik.http.routers.cal-web.middlewares=cal-redirect-https"
-      - "traefik.http.middlewares.cal-redirect-https.redirectscheme.scheme=https"
+     # HTTP -> HTTPS (basse priorité)
+     - "traefik.http.routers.cal-web.rule=Host(`${APP_HOST}`)"
+     - "traefik.http.routers.cal-web.entrypoints=web"
+     - "traefik.http.routers.cal-web.middlewares=cal-redirect-https"
+     - "traefik.http.routers.cal-web.priority=1"
+     - "traefik.http.middlewares.cal-redirect-https.redirectscheme.scheme=https"
 
-      # Site (HTTPS)
-      - "traefik.http.routers.cal-websecure.rule=Host(`${APP_HOST}`)"
-      - "traefik.http.routers.cal-websecure.entrypoints=websecure"
-      - "traefik.http.routers.cal-websecure.tls=true"
-      - "traefik.http.routers.cal-websecure.tls.certresolver=le"
-      - "traefik.http.routers.cal-websecure.priority=10"
-      - "traefik.http.services.cal-frontend.loadbalancer.server.port=80"
-
+     # Site (HTTPS) (basse priorité)
+     - "traefik.http.routers.cal-websecure.rule=Host(`${APP_HOST}`)"
+     - "traefik.http.routers.cal-websecure.entrypoints=websecure"
+     - "traefik.http.routers.cal-websecure.tls=true"
+     - "traefik.http.routers.cal-websecure.tls.certresolver=le"
+     - "traefik.http.routers.cal-websecure.priority=1"
+     - "traefik.http.services.cal-frontend.loadbalancer.server.port=80"
+     
 volumes:
   pgdata:
     name: ${APP_SLUG}_${APP_ENV}_pgdata
