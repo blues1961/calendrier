@@ -29,15 +29,17 @@ services:
       - django_static:/app/staticfiles   # collectstatic cible
     expose:
       - "8000"                           # visible seulement sur le réseau docker
-    command: >
-      bash -lc "
-        python manage.py migrate --noinput &&
-        python manage.py collectstatic --noinput &&
-        gunicorn calendar_project.wsgi:application
-          --bind 0.0.0.0:8000
-          --workers 3
-          --access-logfile - --error-logfile -
-      "
+    command:
+      - bash
+      - -lc
+      - |
+          python manage.py migrate --noinput &&
+          python manage.py collectstatic --noinput &&
+          gunicorn calendar_project.wsgi:application \
+            --bind 0.0.0.0:8000 \
+            --workers 3 \
+            --access-logfile - \
+            --error-logfile -
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/health/ >/dev/null"]
       interval: 10s
