@@ -66,6 +66,10 @@ services:
       - "traefik.http.routers.cal-api-secure.tls.certresolver=le"
       - "traefik.http.routers.cal-api-secure.priority=20"
       - "traefik.http.services.cal-api.loadbalancer.server.port=8000"
+       # ✅ NOUVEAU — API (HTTP) -> redirige vers HTTPS
+      - "traefik.http.routers.cal-api.rule=Host(`${APP_HOST}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.cal-api.entrypoints=web"
+      - "traefik.http.routers.cal-api.middlewares=cal-redirect-https"
 
       # Admin Django (HTTPS)
       - "traefik.http.routers.cal-admin-secure.rule=Host(`${APP_HOST}`) && PathPrefix(`/admin`)"
@@ -74,6 +78,10 @@ services:
       - "traefik.http.routers.cal-admin-secure.tls.certresolver=le"
       - "traefik.http.routers.cal-admin-secure.priority=20"
       - "traefik.http.services.cal-admin.loadbalancer.server.port=8000"
+       # ✅ NOUVEAU — Admin (HTTP) -> redirige vers HTTPS
+      - "traefik.http.routers.cal-admin.rule=Host(`${APP_HOST}`) && PathPrefix(`/admin`)"
+      - "traefik.http.routers.cal-admin.entrypoints=web"
+      - "traefik.http.routers.cal-admin.middlewares=cal-redirect-https"
 
   frontend:
     build:
