@@ -6,7 +6,7 @@ services:
       - .env.prod
       - .env.prod.local
     ports:
-      # Accès local optionnel à la DB depuis l’hôte (OK, Traefik ne touche pas à la DB)
+      # Accès local optionnel à la DB depuis l’hôte (Traefik ne touche pas à la DB)
       - "${PROD_DB_BIND:-127.0.0.1}:${PROD_DB_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -16,8 +16,7 @@ services:
       timeout: 3s
       retries: 40
     restart: unless-stopped
-    networks:
-      - appnet
+    # pas besoin de networks: la db ira sur "default" (qui est appnet nommé)
 
   backend:
     build:
@@ -31,8 +30,10 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - django_static:/app/staticfiles   # collectstatic cible
-    # ⚠️ Pas d'exposition de ports en prod : Traefik route vers ce service
+      - django_static:/app/staticfiles   # cible collectstatic
+    # Bind local (debug uniquement, non exposé publiquement)
+    ports:
+      - "${PROD_API_BIND:-127.0.0.1}:${PROD_API_PORT:-8000}:8000"
     command:
       - bash
       - -lc
@@ -50,20 +51,31 @@ services:
       timeout: 5s
       retries: 20
     restart: unless-stopped
-    labels:
-      - traefik.enable=true
-      # Route API/Admin directement au backend
-      - traefik.http.routers.${APP_SLUG}-${APP_ENV}-api.rule=Host(`${APP_HOST}`) && (PathPrefix(`/api`) || PathPrefix(`/admin`))
-      - traefik.http.routers.${APP_SLUG}-${APP_ENV}-api.entrypoints=websecure
-      - traefik.http.routers.${APP_SLUG}-${APP_ENV}-api.tls=true
-      - traefik.http.services.${APP_SLUG}-${APP_ENV}-api.loadbalancer.server.port=8000
-      - traefik.docker.network=edge
     networks:
-      - appnet
+      - default   # = appnet nommé
       - edge
 
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=edge"
+
+      # API (HTTPS)
+      - "traefik.http.routers.cal-api-secure.rule=Host(`${APP_HOST}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.cal-api-secure.entrypoints=websecure"
+      - "traefik.http.routers.cal-api-secure.tls=true"
+      - "traefik.http.routers.cal-api-secure.tls.certresolver=le"
+      - "traefik.http.routers.cal-api-secure.priority=20"
+      - "traefik.http.services.cal-api.loadbalancer.server.port=8000"
+
+      # Admin Django (HTTPS)
+      - "traefik.http.routers.cal-admin-secure.rule=Host(`${APP_HOST}`) && PathPrefix(`/admin`)"
+      - "traefik.http.routers.cal-admin-secure.entrypoints=websecure"
+      - "traefik.http.routers.cal-admin-secure.tls=true"
+      - "traefik.http.routers.cal-admin-secure.tls.certresolver=le"
+      - "traefik.http.routers.cal-admin-secure.priority=20"
+      - "traefik.http.services.cal-admin.loadbalancer.server.port=8000"
+
   frontend:
-    # Sert le build Vite via Nginx (statique). Traefik route par hostname.
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -78,9 +90,10 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-    # ⚠️ Pas d'exposition de ports en prod : Traefik route par host
+    # ⚠️ pas d'exposition de port: Traefik est le frontal unique
+    ports: []
     volumes:
-      - django_static:/static:ro         # /static/ (admin + assets Django)
+      - django_static:/static:ro
       - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost/ >/dev/null"]
@@ -88,17 +101,27 @@ services:
       timeout: 5s
       retries: 20
     restart: unless-stopped
-    labels:
-      - traefik.enable=true
-      # Route le site (/) vers le frontend
-      - traefik.http.routers.${APP_SLUG}-${APP_ENV}-front.rule=Host(`${APP_HOST}`)
-      - traefik.http.routers.${APP_SLUG}-${APP_ENV}-front.entrypoints=websecure
-      - traefik.http.routers.${APP_SLUG}-${APP_ENV}-front.tls=true
-      - traefik.http.services.${APP_SLUG}-${APP_ENV}-front.loadbalancer.server.port=80
-      - traefik.docker.network=edge
     networks:
-      - appnet
+      - default   # = appnet nommé
       - edge
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=edge"
+
+      # HTTP -> HTTPS
+      - "traefik.http.routers.cal-web.rule=Host(`${APP_HOST}`)"
+      - "traefik.http.routers.cal-web.entrypoints=web"
+      - "traefik.http.routers.cal-web.middlewares=cal-redirect-https"
+      - "traefik.http.middlewares.cal-redirect-https.redirectscheme.scheme=https"
+
+      # Site (HTTPS)
+      - "traefik.http.routers.cal-websecure.rule=Host(`${APP_HOST}`)"
+      - "traefik.http.routers.cal-websecure.entrypoints=websecure"
+      - "traefik.http.routers.cal-websecure.tls=true"
+      - "traefik.http.routers.cal-websecure.tls.certresolver=le"
+      - "traefik.http.routers.cal-websecure.priority=10"
+      - "traefik.http.services.cal-frontend.loadbalancer.server.port=80"
 
 volumes:
   pgdata:
@@ -107,7 +130,8 @@ volumes:
     name: ${APP_SLUG}_${APP_ENV}_static
 
 networks:
-  appnet:
+  # Le réseau par défaut du stack **est** l'appnet nommé → tout le monde s'y retrouve (db/backend/frontend)
+  default:
     name: ${APP_SLUG}_${APP_ENV}_appnet
   edge:
     external: true
