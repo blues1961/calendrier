@@ -49,7 +49,7 @@ services:
     # Image Nginx qui sert le build Vite et reverse-proxy /api et /admin vers backend
     build:
       context: ./frontend
-      dockerfile: Dockerfile.prod
+      dockerfile: Dockerfile
       args:
         # utiles au build Vite si ton Dockerfile les propage
         VITE_API_BASE: ${VITE_API_BASE:-/api}
