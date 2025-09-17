@@ -6,7 +6,6 @@ services:
       - .env.prod
       - .env.prod.local
     ports:
-      # Accès local optionnel à la DB depuis l’hôte (Traefik ne touche pas à la DB)
       - "${PROD_DB_BIND:-127.0.0.1}:${PROD_DB_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -16,7 +15,7 @@ services:
       timeout: 3s
       retries: 40
     restart: unless-stopped
-    # pas besoin de networks: la db ira sur "default" (qui est appnet nommé)
+    # Sur le réseau "default" (appnet nommé)
 
   backend:
     build:
@@ -30,8 +29,7 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - django_static:/app/staticfiles   # cible collectstatic
-    # Bind local (debug uniquement, non exposé publiquement)
+      - django_static:/app/staticfiles
     ports:
       - "${PROD_API_BIND:-127.0.0.1}:${PROD_API_PORT:-8000}:8000"
     command:
@@ -46,35 +44,36 @@ services:
             --access-logfile - \
             --error-logfile -
     healthcheck:
+      # 301 attendu si SECURE_SSL_REDIRECT => OK (curl -f ne considère pas 3xx comme erreur)
       test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/health/ >/dev/null"]
       interval: 10s
       timeout: 5s
       retries: 20
     restart: unless-stopped
     networks:
-      - default   # = appnet nommé
+      - default
       - edge
-
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=edge"
 
       # API (HTTPS)
-      - "traefik.http.routers.cal-api.rule=Host(`${APP_HOST}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.cal-api.rule=Host(`${APP_HOST}`) && PathPrefix(`/api/`)"
       - "traefik.http.routers.cal-api.entrypoints=websecure"
       - "traefik.http.routers.cal-api.tls=true"
       - "traefik.http.routers.cal-api.tls.certresolver=le"
       - "traefik.http.routers.cal-api.priority=100"
       - "traefik.http.services.cal-api.loadbalancer.server.port=8000"
+      - "traefik.http.routers.cal-api.service=cal-api"
 
       # Admin (HTTPS)
-      - "traefik.http.routers.cal-admin.rule=Host(`${APP_HOST}`) && PathPrefix(`/admin`)"
+      - "traefik.http.routers.cal-admin.rule=Host(`${APP_HOST}`) && PathPrefix(`/admin/`)"
       - "traefik.http.routers.cal-admin.entrypoints=websecure"
       - "traefik.http.routers.cal-admin.tls=true"
       - "traefik.http.routers.cal-admin.tls.certresolver=le"
       - "traefik.http.routers.cal-admin.priority=100"
       - "traefik.http.services.cal-admin.loadbalancer.server.port=8000"
-
+      - "traefik.http.routers.cal-admin.service=cal-admin"
 
   frontend:
     build:
@@ -91,8 +90,7 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-    # ⚠️ pas d'exposition de port: Traefik est le frontal unique
-    ports: []
+    ports: []   # Traefik only
     volumes:
       - django_static:/static:ro
       - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
@@ -103,22 +101,21 @@ services:
       retries: 20
     restart: unless-stopped
     networks:
-      - default   # = appnet nommé
+      - default
       - edge
-
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=edge"
 
-      # Site (HTTPS) uniquement, priorité basse
-      - "traefik.http.routers.cal-websecure.rule=Host(`${APP_HOST}`) && PathPrefix(`/`)"
+      # Site (HTTPS) — n’attrape PAS /api ni /admin
+      - "traefik.http.routers.cal-websecure.rule=Host(`${APP_HOST}`) && !PathPrefix(`/api/`) && !PathPrefix(`/admin/`)"
       - "traefik.http.routers.cal-websecure.entrypoints=websecure"
       - "traefik.http.routers.cal-websecure.tls=true"
       - "traefik.http.routers.cal-websecure.tls.certresolver=le"
       - "traefik.http.routers.cal-websecure.priority=1"
+      - "traefik.http.routers.cal-websecure.service=cal-frontend"   # ← explicite
       - "traefik.http.services.cal-frontend.loadbalancer.server.port=80"
 
-     
 volumes:
   pgdata:
     name: ${APP_SLUG}_${APP_ENV}_pgdata
@@ -126,7 +123,6 @@ volumes:
     name: ${APP_SLUG}_${APP_ENV}_static
 
 networks:
-  # Le réseau par défaut du stack **est** l'appnet nommé → tout le monde s'y retrouve (db/backend/frontend)
   default:
     name: ${APP_SLUG}_${APP_ENV}_appnet
   edge:
