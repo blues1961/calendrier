@@ -31,7 +31,7 @@ export default function App(){
         <button className="btn-secondary" onClick={() => api.auth.logout()} style={{marginRight:8}}>Se déconnecter</button>
         <AdminLink />
       </nav>
-      <CalendarBoard sidebarOpen={isSidebarOpen} onToggleSidebar={() => setSidebarOpen(prev => !prev)} />
+      <CalendarBoard sidebarOpen={isSidebarOpen} />
     </>
   )
 }
