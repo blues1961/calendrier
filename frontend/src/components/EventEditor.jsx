@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 
 function toLocalInputValue(dt){
   if (!dt) return ''
@@ -30,10 +30,26 @@ export default function EventEditor({ event, calendars = [], onCancel, onSave, o
   const [segments, setSegments] = useState([{ count: 10, gap: 0 }])
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
+  const descRef = useRef(null)
+  const locRef = useRef(null)
 
   const canSave = useMemo(() => form.title.trim() && form.start && form.end && form.calendar, [form])
 
   function upd(k, v){ setForm(prev => ({ ...prev, [k]: v })) }
+
+  const autoResize = (el) => {
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }
+
+  useEffect(() => {
+    autoResize(descRef.current)
+    autoResize(locRef.current)
+  }, [])
+
+  useEffect(() => { autoResize(descRef.current) }, [form.description])
+  useEffect(() => { autoResize(locRef.current) }, [form.location])
 
   async function submit(e){
     e?.preventDefault?.()
@@ -113,7 +129,16 @@ export default function EventEditor({ event, calendars = [], onCancel, onSave, o
 
       <label htmlFor="ev-desc" className="editor-field">
         <span>Description</span>
-        <textarea id="ev-desc" rows="4" value={form.description} onChange={e=>upd('description', e.target.value)} />
+        <textarea
+          id="ev-desc"
+          ref={descRef}
+          rows="3"
+          value={form.description}
+          onChange={e=>{
+            upd('description', e.target.value)
+            autoResize(e.target)
+          }}
+        />
       </label>
 
       <label htmlFor="ev-start" className="editor-field">
@@ -133,7 +158,17 @@ export default function EventEditor({ event, calendars = [], onCancel, onSave, o
 
       <label htmlFor="ev-loc" className="editor-field">
         <span>Lieu</span>
-        <textarea id="ev-loc" rows="3" placeholder={'Nom du lieu\nAdresse ligne 1\nAdresse ligne 2'} value={form.location} onChange={e=>upd('location', e.target.value)} />
+        <textarea
+          id="ev-loc"
+          ref={locRef}
+          rows="2"
+          placeholder={'Nom du lieu\nAdresse ligne 1\nAdresse ligne 2'}
+          value={form.location}
+          onChange={e=>{
+            upd('location', e.target.value)
+            autoResize(e.target)
+          }}
+        />
       </label>
 
       {creating && (
