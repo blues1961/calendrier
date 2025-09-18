@@ -32,7 +32,7 @@ const messages = {
   noEventsInRange: 'Aucun événement',
 }
 
-export default function CalendarBoard(){
+export default function CalendarBoard({ sidebarOpen = true, onToggleSidebar }){
   const [cals, setCals] = useState([])
   const [events, setEvents] = useState([])
   const [selected, setSelected] = useState(new Set())
@@ -148,27 +148,52 @@ export default function CalendarBoard(){
     return { style: { backgroundColor: bg, borderColor: bg, color: fg } }
   }
 
-  return (
-    <div style={{ display:'grid', gridTemplateColumns:'260px 1fr', gap:16, padding:16, minHeight:'calc(100vh - 56px)' }}>
-      <aside style={{ borderRight:'1px solid #2a2d36', paddingRight:12 }}>
-        <h3 style={{ margin:'0 0 8px' }}>Calendriers</h3>
-        <ul style={{ listStyle:'none', padding:0, margin:0, display:'grid', gap:8 }}>
-          {cals.map(c => (
-            <li key={c.id} title={c.name} style={{ display:'flex', alignItems:'center', gap:8 }}>
-              <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} />
-              <span style={{ background:c.color, display:'inline-block', width:12, height:12, borderRadius:3 }} />
-              <span style={{ flex:1 }}>{c.name}</span>
-              <button className="btn-secondary" onClick={() => setEditingCal(c)} style={{ padding:'4px 8px' }}>Modifier</button>
-            </li>
-          ))}
-          {!cals.length && <li style={{ opacity:.7 }}><em>Aucun calendrier</em></li>}
-        </ul>
-        <div style={{ marginTop:16 }}>
-          <button onClick={() => setCreatingCal(true)}>Ajouter un calendrier</button>
-        </div>
-      </aside>
+  const layoutStyle = useMemo(() => ({
+    display: 'grid',
+    gridTemplateColumns: sidebarOpen ? '260px 1fr' : '1fr',
+    gap: 16,
+    padding: 16,
+    minHeight: 'calc(100vh - 56px)',
+    alignItems: 'start',
+  }), [sidebarOpen])
 
-      <main>
+  return (
+    <div style={layoutStyle}>
+      {sidebarOpen && (
+        <aside style={{ borderRight:'1px solid #2a2d36', paddingRight:12 }}>
+          <h3 style={{ margin:'0 0 8px' }}>Calendriers</h3>
+          <ul style={{ listStyle:'none', padding:0, margin:0, display:'grid', gap:8 }}>
+            {cals.map(c => (
+              <li key={c.id} title={c.name} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} />
+                <span style={{ background:c.color, display:'inline-block', width:12, height:12, borderRadius:3 }} />
+                <span style={{ flex:1 }}>{c.name}</span>
+                <button className="btn-secondary" onClick={() => setEditingCal(c)} style={{ padding:'4px 8px' }}>Modifier</button>
+              </li>
+            ))}
+            {!cals.length && <li style={{ opacity:.7 }}><em>Aucun calendrier</em></li>}
+          </ul>
+          <div style={{ marginTop:16 }}>
+            <button onClick={() => setCreatingCal(true)}>Ajouter un calendrier</button>
+          </div>
+        </aside>
+      )}
+
+      <main style={{ gridColumn: sidebarOpen ? 'auto' : '1 / -1' }}>
+        {!sidebarOpen && onToggleSidebar && (
+          <div style={{ marginBottom:12 }}>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={onToggleSidebar}
+              aria-label="Afficher la liste des calendriers"
+              style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'6px 10px' }}
+            >
+              ☰
+              <span>Afficher les calendriers</span>
+            </button>
+          </div>
+        )}
         <Calendar
           localizer={localizer}
           culture="fr"
