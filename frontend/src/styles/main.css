@@ -57,6 +57,13 @@ button{padding:8px}
   outline: none;
 }
 
+.editor-field textarea {
+  resize: none;
+  min-height: 96px;
+  line-height: 1.45;
+  overflow-y: auto;
+}
+
 .editor-field input:focus,
 .editor-field textarea:focus,
 .editor-field select:focus {
