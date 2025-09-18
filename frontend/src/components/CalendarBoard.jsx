@@ -32,7 +32,7 @@ const messages = {
   noEventsInRange: 'Aucun événement',
 }
 
-export default function CalendarBoard({ sidebarOpen = true, onToggleSidebar }){
+export default function CalendarBoard({ sidebarOpen = true }){
   const [cals, setCals] = useState([])
   const [events, setEvents] = useState([])
   const [selected, setSelected] = useState(new Set())
@@ -108,8 +108,8 @@ export default function CalendarBoard({ sidebarOpen = true, onToggleSidebar }){
   function endOfDay(d){ const x = new Date(d); x.setHours(23,59,0,0); return x }
 
   function handleSlotSelect(info){
-    // Crée un nouvel événement uniquement sur double-clic (si supporté), sinon ignorer
-    if (info?.action && info.action !== 'doubleClick') return
+    // Crée un nouvel événement sur simple clic ou sélection d'un créneau
+    if (info?.action && !['click', 'doubleClick', 'select'].includes(info.action)) return
     if (!cals.length) return
     const defaultCal = (cals.find(c => c.is_default) || cals[0])
     const start = new Date(info.start)
@@ -180,20 +180,6 @@ export default function CalendarBoard({ sidebarOpen = true, onToggleSidebar }){
       )}
 
       <main style={{ gridColumn: sidebarOpen ? 'auto' : '1 / -1' }}>
-        {!sidebarOpen && onToggleSidebar && (
-          <div style={{ marginBottom:12 }}>
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={onToggleSidebar}
-              aria-label="Afficher la liste des calendriers"
-              style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'6px 10px' }}
-            >
-              ☰
-              <span>Afficher les calendriers</span>
-            </button>
-          </div>
-        )}
         <Calendar
           localizer={localizer}
           culture="fr"
