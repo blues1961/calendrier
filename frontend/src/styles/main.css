@@ -2,6 +2,153 @@ html,body,#root{height:100%;margin:0;padding:0;font-family:system-ui,-apple-syst
 *{box-sizing:border-box}
 button{padding:8px}
 
+.editor-pane {
+  background: #151a22;
+  color: #e9edf7;
+  border: 1px solid #2c3340;
+  border-radius: 16px;
+  padding: 18px 20px 16px;
+  display: grid;
+  gap: 12px;
+  box-shadow: 0 16px 48px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.03);
+}
+
+.editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.editor-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.editor-subtitle {
+  margin: 4px 0 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.editor-field span {
+  font-size: .95rem;
+}
+
+.editor-field input[type="text"],
+.editor-field input[type="password"],
+.editor-field input[type="datetime-local"],
+.editor-field input[type="number"],
+.editor-field textarea,
+.editor-field select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #2f3542;
+  background: #0f1218;
+  color: #e9edf7;
+  border-radius: 8px;
+  outline: none;
+}
+
+.editor-field input:focus,
+.editor-field textarea:focus,
+.editor-field select:focus {
+  border-color: #4c8dff;
+  box-shadow: 0 0 0 3px rgba(76,141,255,.15);
+}
+
+.editor-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.editor-checkbox input[type="checkbox"] {
+  width: auto;
+  height: auto;
+}
+
+.editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.editor-actions-right {
+  display: flex;
+  gap: 10px;
+}
+
+.editor-recurring {
+  display: grid;
+  gap: 12px;
+}
+
+.editor-recurring-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.editor-recurring-row label {
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.editor-recurring-row input[type="number"] {
+  padding: 8px 10px;
+  border: 1px solid #2f3542;
+  background: #0f1218;
+  color: #e9edf7;
+  border-radius: 8px;
+}
+
+.editor-recurring-row input[type="number"]:focus {
+  border-color: #4c8dff;
+  box-shadow: 0 0 0 3px rgba(76,141,255,.15);
+}
+
+.form-error {
+  background: rgba(200,65,88,.15);
+  border: 1px solid rgba(200,65,88,.4);
+  color: #ffb3c3;
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+@media (max-width: 720px) {
+  .editor-pane {
+    padding: 16px;
+  }
+
+  .editor-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .editor-actions-right {
+    justify-content: flex-end;
+    width: 100%;
+  }
+
+  .editor-recurring-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Modal centrée (style fiche) */
 .modal-backdrop {
   position: fixed; inset: 0;

@@ -22,33 +22,45 @@ export default function CalendarEditor({ calendar, onCancel, onSave, onDelete, t
   }
 
   return (
-    <div className="modal-backdrop">
-      <form className="modal" role="dialog" aria-modal="true" aria-labelledby="cal-editor-title" onSubmit={submit}>
+    <form className="editor-pane" aria-labelledby="cal-editor-title" onSubmit={submit}>
+      <div className="editor-header">
         <h3 id="cal-editor-title">{title}</h3>
-        <button type="button" className="modal-close" aria-label="Fermer" onClick={onCancel}>×</button>
-        {err && <div className="form-error" style={{marginTop:4}}>{err}</div>}
+        <button type="button" className="btn-secondary" onClick={onCancel} disabled={saving}>Fermer</button>
+      </div>
+      {err && <div className="form-error">{err}</div>}
 
-        <label htmlFor="cal-name">Nom</label>
+      <label htmlFor="cal-name" className="editor-field">
+        <span>Nom</span>
         <input id="cal-name" type="text" value={name} onChange={e=>setName(e.target.value)} required />
+      </label>
 
-        <label htmlFor="cal-color">Couleur</label>
-        <input id="cal-color" type="color" value={color} onChange={e=>setColor(e.target.value)} />
+      <label htmlFor="cal-color" className="editor-field">
+        <span>Couleur</span>
+        <input
+          id="cal-color"
+          type="color"
+          value={color}
+          onChange={e=>setColor(e.target.value)}
+          style={{ width: 72, height: 40, padding: 0, borderRadius: 8, border: '1px solid #2f3542', background: '#0f1218' }}
+        />
+      </label>
 
-        <label htmlFor="cal-default">Par défaut</label>
+      <label htmlFor="cal-default" className="editor-checkbox">
         <input id="cal-default" type="checkbox" checked={isDefault} onChange={e=>setIsDefault(e.target.checked)} />
+        <span>Par défaut</span>
+      </label>
 
-        <div className="modal-actions" style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-          <div>
-            {calendar?.id && onDelete && (
-              <button type="button" className="btn-danger" onClick={onDelete} disabled={saving}>Supprimer le calendrier</button>
-            )}
-          </div>
-          <div style={{ display:'flex', gap:10 }}>
-            <button type="button" className="btn-secondary" onClick={onCancel} disabled={saving}>Annuler</button>
-            <button type="submit" disabled={!canSave || saving}>Enregistrer</button>
-          </div>
+      <div className="editor-actions">
+        <div>
+          {calendar?.id && onDelete && (
+            <button type="button" className="btn-danger" onClick={onDelete} disabled={saving}>Supprimer le calendrier</button>
+          )}
         </div>
-      </form>
-    </div>
+        <div className="editor-actions-right">
+          <button type="button" className="btn-secondary" onClick={onCancel} disabled={saving}>Annuler</button>
+          <button type="submit" disabled={!canSave || saving}>Enregistrer</button>
+        </div>
+      </div>
+    </form>
   )
 }

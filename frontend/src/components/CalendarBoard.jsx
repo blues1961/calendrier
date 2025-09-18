@@ -179,23 +179,7 @@ export default function CalendarBoard({ sidebarOpen = true }){
         </aside>
       )}
 
-      <main style={{ gridColumn: sidebarOpen ? 'auto' : '1 / -1' }}>
-        <Calendar
-          localizer={localizer}
-          culture="fr"
-          messages={messages}
-          events={visibleEvents}
-          startAccessor="start"
-          endAccessor="end"
-          selectable="ignoreEvents"
-          onSelectSlot={handleSlotSelect}
-          view={view}
-          onView={setView}
-          components={{ event: EventWithTooltip }}
-          eventPropGetter={eventPropGetter}
-          onSelectEvent={(ev) => setEditingEvt(ev)}
-          style={{ height: 'calc(100vh - 96px)', minHeight: 420 }}
-        />
+      <main style={{ gridColumn: sidebarOpen ? 'auto' : '1 / -1', display:'grid', gap:16 }}>
         {editingEvt && (
           <EventEditor
             event={editingEvt}
@@ -231,6 +215,7 @@ export default function CalendarBoard({ sidebarOpen = true }){
             }}
           />
         )}
+
         {editingCal && (
           <CalendarEditor
             calendar={editingCal}
@@ -246,11 +231,12 @@ export default function CalendarBoard({ sidebarOpen = true }){
               const ok = window.confirm('Supprimer ce calendrier et tous ses événements ? Cette action est définitive.')
               if (!ok) return
               await api.calendars.remove(editingCal.id)
-              setEditingCal(null)               // ferme la modale
+              setEditingCal(null)               // ferme la fiche
               await reloadData({ removedId: editingCal.id }) // rafraîchit liste + événements
             }}
           />
         )}
+
         {creatingCal && (
           <CalendarEditor
             calendar={{ name: '', color: '#1976d2', is_default: false }}
@@ -265,6 +251,23 @@ export default function CalendarBoard({ sidebarOpen = true }){
             }}
           />
         )}
+
+        <Calendar
+          localizer={localizer}
+          culture="fr"
+          messages={messages}
+          events={visibleEvents}
+          startAccessor="start"
+          endAccessor="end"
+          selectable="ignoreEvents"
+          onSelectSlot={handleSlotSelect}
+          view={view}
+          onView={setView}
+          components={{ event: EventWithTooltip }}
+          eventPropGetter={eventPropGetter}
+          onSelectEvent={(ev) => setEditingEvt(ev)}
+          style={{ height: 'calc(100vh - 96px)', minHeight: 420 }}
+        />
       </main>
     </div>
   )
