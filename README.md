@@ -4,7 +4,7 @@ Application de calendrier auto-hébergée, inspirée de Google Calendar :
 - **Backend** : Django + Django REST Framework + JWT  
 - **Frontend** : React + Vite + react-big-calendar  
 - **Base** : PostgreSQL  
-- **Infra** : Docker Compose (dev/prod), reverse proxy Apache2  
+- **Infra** : Docker Compose (dev/prod), Traefik comme proxy 80/443  
 - **Langue** : Français (Canada)
 
 ---
