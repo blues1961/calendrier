@@ -138,7 +138,7 @@ if DEBUG:
             f"http://127.0.0.1:{vite_port}",
         ]
 
-# --- Reverse proxy TLS (Apache) : indique à Django que la requête est en HTTPS
+# --- Reverse proxy TLS (Traefik) : indique à Django que la requête est en HTTPS
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
 
@@ -149,10 +149,4 @@ CSRF_COOKIE_SECURE = _env_bool("CSRF_COOKIE_SECURE", not DEBUG)
 SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", "0" if DEBUG else "31536000"))
 SECURE_HSTS_INCLUDE_SUBDOMAINS = _env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", not DEBUG)
 SECURE_HSTS_PRELOAD = _env_bool("SECURE_HSTS_PRELOAD", not DEBUG)
-
-
-# --- PRODUCTION, derrière Traefik ---
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # Django comprend le HTTPS via Traefik
-
-
 
