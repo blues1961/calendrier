@@ -3,8 +3,11 @@
 # ============================
 .env
 .env.*
-# Autoriser l'exemple d'env prod
+# Autoriser les fichiers d'environnement versionnés
+!.env.dev
+!.env.prod
 !.env.prod.example
+.env.dev.local
 .env.prod.local
 .env.local
 *.bak
