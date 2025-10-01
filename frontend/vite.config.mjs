@@ -4,6 +4,7 @@ import path from 'node:path'
 
 export default defineConfig({
   plugins: [react()],
+  envPrefix: ['VITE_', 'APP_'],
   resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
   server: {
     host: '0.0.0.0',
@@ -15,4 +16,3 @@ export default defineConfig({
     },
   },
 })
-

@@ -3,6 +3,9 @@ import AdminLink from './components/AdminLink';
 import Login from './components/Auth/Login'
 import CalendarBoard from './components/CalendarBoard'
 import { api } from './api'
+import monSiteLogo from './assets/mon-site-logo.png'
+
+const APP_NAME = String(import.meta?.env?.APP_NAME || import.meta?.env?.VITE_APP_NAME || '').trim() || 'Calendrier';
 
 export default function App(){
   const [isAuthed, setAuthed] = useState(!!localStorage.getItem('access'))
@@ -12,7 +15,7 @@ export default function App(){
     window.addEventListener('storage', handler)
     return () => window.removeEventListener('storage', handler)
   }, [])
-  if (!isAuthed) return <Login onLogin={() => setAuthed(true)} />
+  if (!isAuthed) return <Login appName={APP_NAME} onLogin={() => setAuthed(true)} />
   return (
     <>
       <nav style={{display:'flex',gap:12,padding:'8px 12px',borderBottom:'1px solid #eee',alignItems:'center'}}>
@@ -26,7 +29,15 @@ export default function App(){
         >
           ☰
         </button>
-        <strong style={{marginRight:16}}>Calendrier</strong>
+        <a
+          href="#"
+          onClick={e => { e.preventDefault(); }}
+          style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: '#111', fontWeight: 700, marginRight: 16 }}
+          aria-label={`${APP_NAME} - tableau de bord`}
+        >
+          <img src={monSiteLogo} alt="mon-site.ca" style={{ height: 28 }} />
+          <span>{APP_NAME}</span>
+        </a>
         <div style={{flex:1}} />
         <button className="btn-secondary" onClick={() => api.auth.logout()} style={{marginRight:8}}>Se déconnecter</button>
         <AdminLink />
