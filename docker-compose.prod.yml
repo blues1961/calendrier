@@ -44,7 +44,7 @@ services:
             --access-logfile - \
             --error-logfile -
     healthcheck:
-      # 301 attendu si SECURE_SSL_REDIRECT => OK (curl -f ne considère pas 3xx comme erreur)
+      # 301 attendu si SECURE_SSL_REDIRECT => curl -f OK (échoue seulement >=400)
       test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/health/ >/dev/null"]
       interval: 10s
       timeout: 5s
@@ -57,8 +57,12 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=edge"
 
-      # HTTP -> redirection TLS
+      # Middleware HTTP -> HTTPS
       - "traefik.http.middlewares.cal-redirect-https.redirectscheme.scheme=https"
+
+      # ----------------------
+      # HTTP (redirige vers HTTPS)
+      # ----------------------
       - "traefik.http.routers.cal-api-http.rule=Host(`${APP_HOST}`) && PathPrefix(`/api/`)"
       - "traefik.http.routers.cal-api-http.entrypoints=web"
       - "traefik.http.routers.cal-api-http.middlewares=cal-redirect-https"
@@ -71,7 +75,17 @@ services:
       - "traefik.http.routers.cal-admin-http.priority=100"
       - "traefik.http.routers.cal-admin-http.service=cal-admin"
 
-      # API (HTTPS)
+      # NEW: /static/ en HTTP -> redirige vers HTTPS
+      - "traefik.http.routers.cal-static-http.rule=Host(`${APP_HOST}`) && PathPrefix(`/static/`)"
+      - "traefik.http.routers.cal-static-http.entrypoints=web"
+      - "traefik.http.routers.cal-static-http.middlewares=cal-redirect-https"
+      - "traefik.http.routers.cal-static-http.priority=100"
+      - "traefik.http.routers.cal-static-http.service=cal-static"
+
+      # ----------------------
+      # HTTPS
+      # ----------------------
+      # API
       - "traefik.http.routers.cal-api.rule=Host(`${APP_HOST}`) && PathPrefix(`/api/`)"
       - "traefik.http.routers.cal-api.entrypoints=websecure"
       - "traefik.http.routers.cal-api.tls=true"
@@ -80,7 +94,7 @@ services:
       - "traefik.http.services.cal-api.loadbalancer.server.port=8000"
       - "traefik.http.routers.cal-api.service=cal-api"
 
-      # Admin (HTTPS)
+      # Admin
       - "traefik.http.routers.cal-admin.rule=Host(`${APP_HOST}`) && PathPrefix(`/admin/`)"
       - "traefik.http.routers.cal-admin.entrypoints=websecure"
       - "traefik.http.routers.cal-admin.tls=true"
@@ -88,6 +102,15 @@ services:
       - "traefik.http.routers.cal-admin.priority=100"
       - "traefik.http.services.cal-admin.loadbalancer.server.port=8000"
       - "traefik.http.routers.cal-admin.service=cal-admin"
+
+      # NEW: /static/ en HTTPS (WhiteNoise)
+      - "traefik.http.routers.cal-static.rule=Host(`${APP_HOST}`) && PathPrefix(`/static/`)"
+      - "traefik.http.routers.cal-static.entrypoints=websecure"
+      - "traefik.http.routers.cal-static.tls=true"
+      - "traefik.http.routers.cal-static.tls.certresolver=le"
+      - "traefik.http.routers.cal-static.priority=100"
+      - "traefik.http.services.cal-static.loadbalancer.server.port=8000"
+      - "traefik.http.routers.cal-static.service=cal-static"
 
   frontend:
     build:
@@ -122,20 +145,20 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=edge"
 
-      # HTTP -> redirection TLS
-      - "traefik.http.routers.cal-web.rule=Host(`${APP_HOST}`) && !PathPrefix(`/api/`) && !PathPrefix(`/admin/`)"
+      # HTTP -> redirection TLS (frontend ne doit PAS attraper /api /admin /static)
+      - "traefik.http.routers.cal-web.rule=Host(`${APP_HOST}`) && !PathPrefix(`/api/`) && !PathPrefix(`/admin/`) && !PathPrefix(`/static/`)"
       - "traefik.http.routers.cal-web.entrypoints=web"
-      - "traefik.http.routers.cal-web.middlewares=cal-redirect-https@docker"
+      - "traefik.http.routers.cal-web.middlewares=cal-redirect-https"
       - "traefik.http.routers.cal-web.priority=1"
       - "traefik.http.routers.cal-web.service=cal-frontend"
 
-      # Site (HTTPS) — n’attrape PAS /api ni /admin
-      - "traefik.http.routers.cal-websecure.rule=Host(`${APP_HOST}`) && !PathPrefix(`/api/`) && !PathPrefix(`/admin/`)"
+      # Site (HTTPS) — n’attrape PAS /api, /admin ni /static
+      - "traefik.http.routers.cal-websecure.rule=Host(`${APP_HOST}`) && !PathPrefix(`/api/`) && !PathPrefix(`/admin/`) && !PathPrefix(`/static/`)"
       - "traefik.http.routers.cal-websecure.entrypoints=websecure"
       - "traefik.http.routers.cal-websecure.tls=true"
       - "traefik.http.routers.cal-websecure.tls.certresolver=le"
       - "traefik.http.routers.cal-websecure.priority=1"
-      - "traefik.http.routers.cal-websecure.service=cal-frontend"   # ← explicite
+      - "traefik.http.routers.cal-websecure.service=cal-frontend"
       - "traefik.http.services.cal-frontend.loadbalancer.server.port=80"
 
 volumes:
