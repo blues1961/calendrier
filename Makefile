@@ -1,7 +1,7 @@
 # Makefile — Calendrier (aligné sur INVARIANTS)
 # - .env est un symlink vers .env.<env> (ex: .env.dev)
 # - Services Compose fixes: db, backend, vite
-# - Secrets seulement dans .env.<env>.local
+# - Secrets seulement dans .env.local
 # - Front utilise /api (chemin relatif), Vite proxy -> backend:8000
 
 SHELL := /bin/bash
@@ -60,8 +60,8 @@ sh: env-check ## Shell dans le backend
 migrate: env-check ## Django: migrations
 	$(COMPOSE) exec -T backend python manage.py migrate
 
-createsuperuser: env-check ## Crée/MAJ admin via ADMIN_* (.env.<env>.local)
-	set -a ; . ./.env ; [ -f ./.env.$(APP_ENV).local ] && . ./.env.$(APP_ENV).local || true ; set +a ; \
+createsuperuser: env-check ## Crée/MAJ admin via ADMIN_* (.env.local)
+	set -a ; . ./.env ; [ -f ./.env.local ] && . ./.env.local || true ; set +a ; \
 	$(COMPOSE) exec -T \
 	  -e ADMIN_USERNAME="$$ADMIN_USERNAME" \
 	  -e ADMIN_EMAIL="$$ADMIN_EMAIL" \
@@ -72,7 +72,7 @@ whoami: env-check ## Test /api/whoami (via port API)
 	PORT=$$(. ./.env; echo $$DEV_API_PORT); curl -sS "http://localhost:$$PORT/api/whoami/" | jq . || true
 
 token-test: env-check ## JWT create -> whoami (DEV)
-	set -a ; . ./.env ; [ -f ./.env.$(APP_ENV).local ] && . ./.env.$(APP_ENV).local || true ; set +a ; \
+	set -a ; . ./.env ; [ -f ./.env.local ] && . ./.env.local || true ; set +a ; \
 	curl -sS "http://localhost:$$DEV_API_PORT/api/auth/jwt/create/" \
 	  -H 'Content-Type: application/json' \
 	  -d "$$(jq -n --arg u "$$ADMIN_USERNAME" --arg p "$$ADMIN_PASSWORD" '{username:$$u, password:$$p}')" \
@@ -85,13 +85,13 @@ backups-dir:
 	mkdir -p backups
 
 backup-db: env-check backups-dir ## Sauvegarder la DB de dev -> backups/<app_slug>_db-<ts>.sql.gz
-	set -a ; . ./.env ; [ -f ./.env.$(APP_ENV).local ] && . ./.env.$(APP_ENV).local || true ; set +a ; \
+	set -a ; . ./.env ; [ -f ./.env.local ] && . ./.env.local || true ; set +a ; \
 	SLUG=$${APP_SLUG:-app} ; TS=$$(date +%Y%m%d-%H%M%S) ; OUT=$${OUT:-backups/$${SLUG}_db-$$TS.sql.gz} ; \
 	echo "Backup -> $$OUT" ; \
 	$(COMPOSE) exec -T db pg_dump -U "$$POSTGRES_USER" "$$POSTGRES_DB" | gzip > "$$OUT"
 
 restore-db: env-check ## Restaurer la DB depuis BACKUP=<fichier.sql.gz> (dernier par défaut)
-	set -a ; . ./.env ; [ -f ./.env.$(APP_ENV).local ] && . ./.env.$(APP_ENV).local || true ; set +a ; \
+	set -a ; . ./.env ; [ -f ./.env.local ] && . ./.env.local || true ; set +a ; \
 	SLUG=$${APP_SLUG:-app} ; PATTERN=backups/$${SLUG}_db-*.sql.gz ; \
 	FILE=$${BACKUP:-$$(ls -1t $$PATTERN 2>/dev/null | head -n1)} ; \
 	test -n "$$FILE" -a -f "$$FILE" || { echo "Aucun backup trouvé ($$PATTERN) ou BACKUP invalide"; exit 1; } ; \

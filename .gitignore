@@ -7,6 +7,7 @@
 !.env.dev
 !.env.prod
 !.env.prod.example
+!.env.local.example
 .env.dev.local
 .env.prod.local
 .env.local

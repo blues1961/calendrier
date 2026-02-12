@@ -4,7 +4,7 @@ services:
     container_name: ${APP_SLUG}_db_${APP_ENV}
     env_file:
       - .env.dev
-      - .env.dev.local
+      - .env.local
     ports:
       - "${DEV_DB_PORT}:5432"
     volumes:
@@ -22,7 +22,7 @@ services:
     container_name: ${APP_SLUG}_backend_${APP_ENV}
     env_file:
       - .env.dev
-      - .env.dev.local
+      - .env.local
     depends_on:
       db:
         condition: service_healthy
@@ -38,7 +38,7 @@ services:
     working_dir: /app
     env_file:
       - .env.dev
-      - .env.dev.local
+      - .env.local
     environment:
       VITE_API_BASE: "/api"
     volumes:
