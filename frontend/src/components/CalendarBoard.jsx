@@ -148,38 +148,37 @@ export default function CalendarBoard({ sidebarOpen = true }){
     return { style: { backgroundColor: bg, borderColor: bg, color: fg } }
   }
 
-  const layoutStyle = useMemo(() => ({
-    display: 'grid',
-    gridTemplateColumns: sidebarOpen ? '260px 1fr' : '1fr',
-    gap: 16,
-    padding: 16,
-    minHeight: 'calc(100vh - 56px)',
-    alignItems: 'start',
-  }), [sidebarOpen])
+  const layoutClassName = sidebarOpen
+    ? 'calendar-layout calendar-layout--with-sidebar'
+    : 'calendar-layout'
 
   return (
-    <div style={layoutStyle}>
+    <div className={layoutClassName}>
       {sidebarOpen && (
-        <aside style={{ borderRight:'1px solid #2a2d36', paddingRight:12 }}>
-          <h3 style={{ margin:'0 0 8px' }}>Calendriers</h3>
-          <ul style={{ listStyle:'none', padding:0, margin:0, display:'grid', gap:8 }}>
+        <aside className="calendar-sidebar">
+          <div className="calendar-sidebar__head">
+            <h3>Calendriers</h3>
+          </div>
+          <ul className="list calendar-list">
             {cals.map(c => (
-              <li key={c.id} title={c.name} style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} />
-                <span style={{ background:c.color, display:'inline-block', width:12, height:12, borderRadius:3 }} />
-                <span style={{ flex:1 }}>{c.name}</span>
-                <button className="btn-secondary" onClick={() => setEditingCal(c)} style={{ padding:'4px 8px' }}>Modifier</button>
+              <li key={c.id} title={c.name} className="calendar-item">
+                <label className="calendar-item__toggle">
+                  <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} />
+                  <span className="calendar-item__color" style={{ background: c.color }} />
+                  <span className="calendar-item__name">{c.name}</span>
+                </label>
+                <button className="btn btn--light btn--xs" onClick={() => setEditingCal(c)}>Modifier</button>
               </li>
             ))}
-            {!cals.length && <li style={{ opacity:.7 }}><em>Aucun calendrier</em></li>}
+            {!cals.length && <li className="calendar-empty"><em>Aucun calendrier</em></li>}
           </ul>
-          <div style={{ marginTop:16 }}>
-            <button onClick={() => setCreatingCal(true)}>Ajouter un calendrier</button>
+          <div className="calendar-sidebar__foot">
+            <button className="btn" onClick={() => setCreatingCal(true)}>Ajouter un calendrier</button>
           </div>
         </aside>
       )}
 
-      <main style={{ gridColumn: sidebarOpen ? 'auto' : '1 / -1', display:'grid', gap:16 }}>
+      <main className="calendar-main">
         {editingEvt && (
           <EventEditor
             event={editingEvt}
@@ -239,7 +238,7 @@ export default function CalendarBoard({ sidebarOpen = true }){
 
         {creatingCal && (
           <CalendarEditor
-            calendar={{ name: '', color: '#1976d2', is_default: false }}
+            calendar={{ name: '', color: '#4c8dff', is_default: false }}
             title="Nouveau calendrier"
             onCancel={() => setCreatingCal(false)}
             onSave={async (payload) => {
@@ -252,22 +251,24 @@ export default function CalendarBoard({ sidebarOpen = true }){
           />
         )}
 
-        <Calendar
-          localizer={localizer}
-          culture="fr"
-          messages={messages}
-          events={visibleEvents}
-          startAccessor="start"
-          endAccessor="end"
-          selectable="ignoreEvents"
-          onSelectSlot={handleSlotSelect}
-          view={view}
-          onView={setView}
-          components={{ event: EventWithTooltip }}
-          eventPropGetter={eventPropGetter}
-          onSelectEvent={(ev) => setEditingEvt(ev)}
-          style={{ height: 'calc(100vh - 96px)', minHeight: 420 }}
-        />
+        <div className="calendar-surface">
+          <Calendar
+            className="calendar-widget"
+            localizer={localizer}
+            culture="fr"
+            messages={messages}
+            events={visibleEvents}
+            startAccessor="start"
+            endAccessor="end"
+            selectable="ignoreEvents"
+            onSelectSlot={handleSlotSelect}
+            view={view}
+            onView={setView}
+            components={{ event: EventWithTooltip }}
+            eventPropGetter={eventPropGetter}
+            onSelectEvent={(ev) => setEditingEvt(ev)}
+          />
+        </div>
       </main>
     </div>
   )

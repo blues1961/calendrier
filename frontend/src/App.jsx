@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import AdminLink from './components/AdminLink';
+import React, { useEffect, useState } from 'react'
+import AdminLink from './components/AdminLink'
 import Login from './components/Auth/Login'
 import CalendarBoard from './components/CalendarBoard'
 import { api } from './api'
-import monSiteLogo from './assets/mon-site-logo.png'
+import monSiteSymbol from './assets/mon-site-symbol.png'
 
-const APP_NAME = String(import.meta?.env?.APP_NAME || import.meta?.env?.VITE_APP_NAME || '').trim() || 'Calendrier';
+const APP_NAME = String(import.meta?.env?.APP_NAME || import.meta?.env?.VITE_APP_NAME || '').trim() || 'Calendrier'
 
 export default function App(){
   const [isAuthed, setAuthed] = useState(!!localStorage.getItem('access'))
@@ -17,32 +17,34 @@ export default function App(){
   }, [])
   if (!isAuthed) return <Login appName={APP_NAME} onLogin={() => setAuthed(true)} />
   return (
-    <>
-      <nav style={{display:'flex',gap:12,padding:'8px 12px',borderBottom:'1px solid #eee',alignItems:'center'}}>
-        <button
-          type="button"
-          className="btn-secondary"
-          onClick={() => setSidebarOpen(prev => !prev)}
-          aria-label={isSidebarOpen ? 'Masquer la liste des calendriers' : 'Afficher la liste des calendriers'}
-          aria-expanded={isSidebarOpen}
-          style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:36,height:32,padding:0}}
-        >
-          ☰
-        </button>
-        <a
-          href="#"
-          onClick={e => { e.preventDefault(); }}
-          style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: '#111', fontWeight: 700, marginRight: 16 }}
-          aria-label={`${APP_NAME} - tableau de bord`}
-        >
-          <img src={monSiteLogo} alt="mon-site.ca" style={{ height: 28 }} />
-          <span>{APP_NAME}</span>
-        </a>
-        <div style={{flex:1}} />
-        <button className="btn-secondary" onClick={() => api.auth.logout()} style={{marginRight:8}}>Se déconnecter</button>
-        <AdminLink />
+    <div className="app-shell">
+      <nav className="topbar">
+        <div className="topbar__inner">
+          <button
+            type="button"
+            className="btn btn--light topbar__toggle"
+            onClick={() => setSidebarOpen(prev => !prev)}
+            aria-label={isSidebarOpen ? 'Masquer la liste des calendriers' : 'Afficher la liste des calendriers'}
+            aria-expanded={isSidebarOpen}
+          >
+            ☰
+          </button>
+          <a
+            href="#"
+            onClick={e => e.preventDefault()}
+            className="brand"
+            aria-label={`${APP_NAME} - tableau de bord`}
+          >
+            <img src={monSiteSymbol} alt="mon-site.ca" className="brand__logo" />
+            <span className="brand__name">{APP_NAME}</span>
+          </a>
+          <div className="topbar__right row">
+            <button className="btn btn--light" onClick={() => api.auth.logout()}>Se déconnecter</button>
+            <AdminLink />
+          </div>
+        </div>
       </nav>
       <CalendarBoard sidebarOpen={isSidebarOpen} />
-    </>
+    </div>
   )
 }

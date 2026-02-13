@@ -111,7 +111,7 @@ export default function EventEditor({ event, calendars = [], onCancel, onSave, o
     <form className="editor-pane" aria-labelledby="evt-editor-title" onSubmit={submit}>
       <div className="editor-header">
         <h3 id="evt-editor-title">{title}</h3>
-        <button type="button" className="btn-secondary" onClick={onCancel} disabled={saving}>Fermer</button>
+        <button type="button" className="btn btn--light" onClick={onCancel} disabled={saving}>Fermer</button>
       </div>
       {err && <div className="form-error">{err}</div>}
 
@@ -200,11 +200,11 @@ export default function EventEditor({ event, calendars = [], onCancel, onSave, o
                       }}
                     />
                   </label>
-                  <button type="button" className="btn-secondary" onClick={()=> setSegments(prev => prev.filter((_,i)=>i!==idx))} disabled={segments.length<=1}>Retirer</button>
+                  <button type="button" className="btn btn--light" onClick={()=> setSegments(prev => prev.filter((_,i)=>i!==idx))} disabled={segments.length<=1}>Retirer</button>
                 </div>
               ))}
               <div>
-                <button type="button" onClick={()=> setSegments(prev => [...prev, { count: 5, gap: 0 }])}>+ Ajouter un segment</button>
+                <button type="button" className="btn btn--light" onClick={()=> setSegments(prev => [...prev, { count: 5, gap: 0 }])}>+ Ajouter un segment</button>
               </div>
             </div>
           )}
@@ -214,12 +214,12 @@ export default function EventEditor({ event, calendars = [], onCancel, onSave, o
       <div className="editor-actions">
         <div>
           {event?.id && onDelete && (
-            <button type="button" className="btn-danger" onClick={onDelete} disabled={saving}>Supprimer l’événement</button>
+            <button type="button" className="btn btn--danger" onClick={onDelete} disabled={saving}>Supprimer l’événement</button>
           )}
         </div>
         <div className="editor-actions-right">
-          <button type="button" className="btn-secondary" onClick={onCancel} disabled={saving}>Annuler</button>
-          <button type="submit" disabled={!canSave || saving}>Enregistrer</button>
+          <button type="button" className="btn btn--light" onClick={onCancel} disabled={saving}>Annuler</button>
+          <button type="submit" className="btn" disabled={!canSave || saving}>Enregistrer</button>
         </div>
       </div>
     </form>

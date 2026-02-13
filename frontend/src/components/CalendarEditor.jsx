@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react'
 
 export default function CalendarEditor({ calendar, onCancel, onSave, onDelete, title = 'Modifier le calendrier' }){
   const [name, setName] = useState(calendar?.name || '')
-  const [color, setColor] = useState(calendar?.color || '#1976d2')
+  const [color, setColor] = useState(calendar?.color || '#4c8dff')
   const [isDefault, setIsDefault] = useState(!!calendar?.is_default)
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
@@ -25,7 +25,7 @@ export default function CalendarEditor({ calendar, onCancel, onSave, onDelete, t
     <form className="editor-pane" aria-labelledby="cal-editor-title" onSubmit={submit}>
       <div className="editor-header">
         <h3 id="cal-editor-title">{title}</h3>
-        <button type="button" className="btn-secondary" onClick={onCancel} disabled={saving}>Fermer</button>
+        <button type="button" className="btn btn--light" onClick={onCancel} disabled={saving}>Fermer</button>
       </div>
       {err && <div className="form-error">{err}</div>}
 
@@ -38,10 +38,10 @@ export default function CalendarEditor({ calendar, onCancel, onSave, onDelete, t
         <span>Couleur</span>
         <input
           id="cal-color"
+          className="editor-color"
           type="color"
           value={color}
           onChange={e=>setColor(e.target.value)}
-          style={{ width: 72, height: 40, padding: 0, borderRadius: 8, border: '1px solid #2f3542', background: '#0f1218' }}
         />
       </label>
 
@@ -53,12 +53,12 @@ export default function CalendarEditor({ calendar, onCancel, onSave, onDelete, t
       <div className="editor-actions">
         <div>
           {calendar?.id && onDelete && (
-            <button type="button" className="btn-danger" onClick={onDelete} disabled={saving}>Supprimer le calendrier</button>
+            <button type="button" className="btn btn--danger" onClick={onDelete} disabled={saving}>Supprimer le calendrier</button>
           )}
         </div>
         <div className="editor-actions-right">
-          <button type="button" className="btn-secondary" onClick={onCancel} disabled={saving}>Annuler</button>
-          <button type="submit" disabled={!canSave || saving}>Enregistrer</button>
+          <button type="button" className="btn btn--light" onClick={onCancel} disabled={saving}>Annuler</button>
+          <button type="submit" className="btn" disabled={!canSave || saving}>Enregistrer</button>
         </div>
       </div>
     </form>

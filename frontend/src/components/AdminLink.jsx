@@ -9,7 +9,7 @@ export default function AdminLink() {
   try { href = new URL(adminPath, apiBase).toString(); } catch {}
 
   return (
-    <a href={href} target="_blank" rel="noreferrer" style={{ marginLeft: 16 }}>
+    <a href={href} target="_blank" rel="noreferrer" className="link admin-link">
       Admin
     </a>
   );
