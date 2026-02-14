@@ -345,7 +345,8 @@ body {
 }
 
 .calendar-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   padding: 8px;
@@ -385,6 +386,15 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.calendar-item__edit {
+  justify-self: end;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.78rem;
 }
 
 .calendar-empty {

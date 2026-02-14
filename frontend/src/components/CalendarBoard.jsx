@@ -199,7 +199,7 @@ export default function CalendarBoard({ sidebarOpen = true }){
                   <span className="calendar-item__color" style={{ background: c.color }} />
                   <span className="calendar-item__name">{c.name}</span>
                 </label>
-                <button className="btn btn--light btn--xs" onClick={() => setEditingCal(c)}>Modifier</button>
+                <button className="btn btn--light btn--xs calendar-item__edit" onClick={() => setEditingCal(c)}>Modifier</button>
               </li>
             ))}
             {!cals.length && <li className="calendar-empty"><em>Aucun calendrier</em></li>}
@@ -292,6 +292,8 @@ export default function CalendarBoard({ sidebarOpen = true }){
             events={visibleEvents}
             startAccessor="start"
             endAccessor="end"
+            step={view === 'week' ? 60 : 30}
+            timeslots={view === 'week' ? 1 : 2}
             selectable="ignoreEvents"
             onSelectSlot={handleSlotSelect}
             view={view}
