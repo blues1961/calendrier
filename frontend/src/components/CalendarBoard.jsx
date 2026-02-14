@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
 import fr from 'date-fns/locale/fr'
@@ -36,6 +36,7 @@ export default function CalendarBoard({ sidebarOpen = true }){
   const [cals, setCals] = useState([])
   const [events, setEvents] = useState([])
   const [selected, setSelected] = useState(new Set())
+  const selectAllRef = useRef(null)
   const [creatingCal, setCreatingCal] = useState(false)
   const [editingCal, setEditingCal] = useState(null)
   const [editingEvt, setEditingEvt] = useState(null)
@@ -89,6 +90,25 @@ export default function CalendarBoard({ sidebarOpen = true }){
       const s = new Set(prev)
       if (s.has(id)) s.delete(id); else s.add(id)
       return s
+    })
+  }
+
+  const selectedCount = useMemo(
+    () => cals.reduce((count, c) => (selected.has(c.id) ? count + 1 : count), 0),
+    [cals, selected]
+  )
+  const allSelected = cals.length > 0 && selectedCount === cals.length
+  const partiallySelected = selectedCount > 0 && !allSelected
+
+  useEffect(() => {
+    if (selectAllRef.current) selectAllRef.current.indeterminate = partiallySelected
+  }, [partiallySelected])
+
+  const toggleAll = () => {
+    setSelected(prev => {
+      const allIds = cals.map(c => c.id)
+      const hasAll = allIds.length > 0 && allIds.every(id => prev.has(id))
+      return hasAll ? new Set() : new Set(allIds)
     })
   }
 
@@ -158,6 +178,18 @@ export default function CalendarBoard({ sidebarOpen = true }){
         <aside className="calendar-sidebar">
           <div className="calendar-sidebar__head">
             <h3>Calendriers</h3>
+          </div>
+          <div className="calendar-sidebar__all">
+            <label className="calendar-item__toggle calendar-item__toggle--all">
+              <input
+                ref={selectAllRef}
+                type="checkbox"
+                checked={allSelected}
+                disabled={!cals.length}
+                onChange={toggleAll}
+              />
+              <span className="calendar-item__name">Tous les calendriers</span>
+            </label>
           </div>
           <ul className="list calendar-list">
             {cals.map(c => (

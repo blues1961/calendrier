@@ -331,6 +331,14 @@ body {
   font-size: 1.02rem;
 }
 
+.calendar-sidebar__all {
+  margin-bottom: 10px;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(214, 226, 246, 0.14);
+  background: rgba(8, 15, 26, 0.42);
+}
+
 .calendar-list {
   display: grid;
   gap: 8px;
@@ -353,6 +361,10 @@ body {
   min-width: 0;
   flex: 1;
   cursor: pointer;
+}
+
+.calendar-item__toggle--all .calendar-item__name {
+  font-weight: 600;
 }
 
 .calendar-item__toggle input {
