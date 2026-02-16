@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
 import { api } from '../../api'
 import monSiteSymbol from '../../assets/mon-site-symbol.png'
+import ThemeToggle from '../ThemeToggle'
 
-export default function Login({ onLogin, appName = 'Calendrier' }){
+export default function Login({ onLogin, appName = 'Calendrier', theme = 'dark', onThemeChange }){
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [err, setErr] = useState('')
@@ -17,6 +18,9 @@ export default function Login({ onLogin, appName = 'Calendrier' }){
   return (
     <div className="page login-page">
       <main className="login-card">
+        <div className="login-card__tools">
+          <ThemeToggle theme={theme} onChange={onThemeChange} />
+        </div>
         <div className="login-head">
           <img src={monSiteSymbol} alt="mon-site.ca" className="login-logo" />
           {appName && <h1 className="login-title">{appName}</h1>}

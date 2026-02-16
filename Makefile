@@ -14,7 +14,7 @@ COMPOSE := docker compose --env-file .env.$(APP_ENV) -f docker-compose.$(APP_ENV
 
 .PHONY: help env-check \
  up down stop start restart ps logs sh migrate createsuperuser whoami token-test \
- backup-db restore-db reset-dev-db seed-dev psql \
+ backup-db restore-db pull-prod-backup restore-prod-backup refresh-dev-from-prod reset-dev-db seed-dev psql \
  up-backend up-db up-vite stop-backend stop-db stop-vite restart-backend restart-db restart-vite \
  logs-backend logs-db logs-vite exec-backend exec-db exec-vite clean reseed rebuild
 
@@ -98,6 +98,38 @@ restore-db: env-check ## Restaurer la DB depuis BACKUP=<fichier.sql.gz> (dernier
 	echo "Restore <- $$FILE" ; \
 	$(COMPOSE) exec -T db psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -c 'DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;' ; \
 	gunzip -c "$$FILE" | $(COMPOSE) exec -T db psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+
+pull-prod-backup: env-check backups-dir ## DEV: télécharge le dernier backup PROD (.sql.gz) dans backups/ (ou REMOTE_BACKUP=/chemin/fichier.sql.gz)
+	test "$(APP_ENV)" = "dev" || { echo "Refusé: cible DEV seulement (.env -> .env.dev)"; exit 2; } ; \
+	set -a ; . ./.env.prod ; [ -f ./.env.local ] && . ./.env.local || true ; set +a ; \
+	: "$${APP_SLUG:?APP_SLUG manquant dans .env.prod}" ; \
+	: "$${PROD_SSH_HOST:?PROD_SSH_HOST manquant (mettre la valeur dans .env.local)}" ; \
+	LOCAL_DIR="$${BACKUP_DIR:-backups}" ; mkdir -p "$$LOCAL_DIR" ; \
+	REMOTE_DIR="$${PROD_BACKUP_DIR:-/opt/apps/$${APP_SLUG}/backups}" ; \
+	REMOTE_FILE="$${REMOTE_BACKUP:-}" ; \
+	if [ -z "$$REMOTE_FILE" ]; then \
+	  REMOTE_FILE="$$(ssh -o BatchMode=yes "$$PROD_SSH_HOST" "ls -1t '$$REMOTE_DIR'/*.sql.gz 2>/dev/null | head -n1")" ; \
+	fi ; \
+	test -n "$$REMOTE_FILE" || { echo "Aucun backup .sql.gz trouvé sur $$PROD_SSH_HOST:$$REMOTE_DIR"; exit 1; } ; \
+	TS=$$(date +%Y%m%d-%H%M%S) ; \
+	OUT="$${OUT:-$$LOCAL_DIR/$${APP_SLUG}_db-prod-$$TS.sql.gz}" ; \
+	echo "Téléchargement: $$PROD_SSH_HOST:$$REMOTE_FILE -> $$OUT" ; \
+	ssh -o BatchMode=yes "$$PROD_SSH_HOST" "cat '$$REMOTE_FILE'" > "$$OUT" ; \
+	test -s "$$OUT" || { echo "Backup vide ou transfert échoué: $$OUT"; exit 1; } ; \
+	echo "Backup local: $$OUT"
+
+restore-prod-backup: env-check ## DEV: restaure le dernier backup PROD local (ou BACKUP=backups/...sql.gz)
+	test "$(APP_ENV)" = "dev" || { echo "Refusé: cible DEV seulement (.env -> .env.dev)"; exit 2; } ; \
+	set -a ; . ./.env ; [ -f ./.env.local ] && . ./.env.local || true ; set +a ; \
+	SLUG=$${APP_SLUG:-app} ; DIR="$${BACKUP_DIR:-backups}" ; PATTERN="$$DIR/$${SLUG}_db-prod-*.sql.gz" ; \
+	FILE=$${BACKUP:-$$(ls -1t $$PATTERN 2>/dev/null | head -n1)} ; \
+	test -n "$$FILE" -a -f "$$FILE" || { echo "Aucun backup PROD local trouvé ($$PATTERN) ou BACKUP invalide"; exit 1; } ; \
+	$(MAKE) restore-db BACKUP="$$FILE"
+
+refresh-dev-from-prod: env-check ## DEV: récupère le dernier backup PROD puis le restaure dans la DB DEV
+	test "$(APP_ENV)" = "dev" || { echo "Refusé: cible DEV seulement (.env -> .env.dev)"; exit 2; } ; \
+	$(MAKE) pull-prod-backup ; \
+	$(MAKE) restore-prod-backup
 
 reset-dev-db: env-check ## Réinitialiser la DB de dev (drop/create/migrate)
 	bash scripts/dev/reset-dev-db.sh
