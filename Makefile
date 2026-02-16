@@ -12,7 +12,7 @@ SHELL := /bin/bash
 APP_ENV := $(shell . ./.env; echo $$APP_ENV)
 COMPOSE := docker compose --env-file .env.$(APP_ENV) -f docker-compose.$(APP_ENV).yml
 
-.PHONY: help env-check \
+.PHONY: help env-check init-dev \
  up down stop start restart ps logs sh migrate createsuperuser whoami token-test \
  backup-db restore-db pull-prod-backup restore-prod-backup refresh-dev-from-prod reset-dev-db seed-dev psql \
  up-backend up-db up-vite stop-backend stop-db stop-vite restart-backend restart-db restart-vite \
@@ -24,6 +24,19 @@ help: ## Liste les commandes disponibles
 	 | sed -E 's/^([a-zA-Z0-9_-]+):.*## (.*)$$/\1\t\2/' \
 	 | sort -f \
 	 | awk -F'\t' '{printf "  \033[36m%-24s\033[0m %s\n", $$1, $$2}'
+
+init-dev: ## DEV: .env -> .env.dev et copie .env.local depuis Linode
+	@set -euo pipefail
+	ln -sfn .env.dev .env
+	. ./.env.prod ; \
+	APP_SLUG="$${APP_SLUG:-cal}" ; \
+	APP_HOST="$${APP_HOST:-cal.mon-site.ca}" ; \
+	PROD_DIR="$${PROD_DIR:-/opt/apps/$${APP_SLUG}}" ; \
+	REMOTE_ENV_FILE="$${INIT_DEV_REMOTE_ENV:-$${PROD_DIR}/.env.local}" ; \
+	PROD_SSH_HOST="$${PROD_SSH_HOST:-sylvain@$${APP_HOST}}" ; \
+	: "$${PROD_SSH_HOST:?PROD_SSH_HOST requis (ex: make init-dev PROD_SSH_HOST=user@linode)}" ; \
+	echo "Copie .env.local depuis $$PROD_SSH_HOST:$$REMOTE_ENV_FILE" ; \
+	scp "$$PROD_SSH_HOST:$$REMOTE_ENV_FILE" .env.local
 
 env-check: ## Vérifie .env -> .env.$(APP_ENV) et docker-compose.$(APP_ENV).yml
 	test -L .env || { echo "Symlink .env manquant (ex: ln -snf .env.dev .env)"; exit 1; }

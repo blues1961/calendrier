@@ -1,7 +1,7 @@
 # DEV standard (cal)
 
 ## Démarrer
-ln -sfn .env.dev .env
+make init-dev             # symlink .env -> .env.dev + .env.local depuis Linode
 set -a; . .env.dev; [ -f .env.local ] && . .env.local; set +a
 docker compose -f docker-compose.dev.yml up -d --build
 
