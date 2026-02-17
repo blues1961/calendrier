@@ -33,10 +33,17 @@ init-dev: ## DEV: .env -> .env.dev et copie .env.local depuis Linode
 	APP_HOST="$${APP_HOST:-cal.mon-site.ca}" ; \
 	PROD_DIR="$${PROD_DIR:-/opt/apps/$${APP_SLUG}}" ; \
 	REMOTE_ENV_FILE="$${INIT_DEV_REMOTE_ENV:-$${PROD_DIR}/.env.local}" ; \
-	PROD_SSH_HOST="$${PROD_SSH_HOST:-sylvain@$${APP_HOST}}" ; \
+	PROD_SSH_HOST="$${PROD_SSH_HOST:-$${PROD_SSH:-sylvain@$${APP_HOST}}}" ; \
 	: "$${PROD_SSH_HOST:?PROD_SSH_HOST requis (ex: make init-dev PROD_SSH_HOST=user@linode)}" ; \
 	echo "Copie .env.local depuis $$PROD_SSH_HOST:$$REMOTE_ENV_FILE" ; \
-	scp "$$PROD_SSH_HOST:$$REMOTE_ENV_FILE" .env.local
+	scp "$$PROD_SSH_HOST:$$REMOTE_ENV_FILE" .env.local ; \
+	if ! grep -q '^PROD_DB_PASSWORD=' .env.local ; then \
+	  POSTGRES_PASSWORD_VALUE="$$(grep -E '^POSTGRES_PASSWORD=' .env.local | tail -n1 | cut -d'=' -f2-)"; \
+	  if [ -n "$$POSTGRES_PASSWORD_VALUE" ]; then \
+	    echo "Ajout PROD_DB_PASSWORD depuis POSTGRES_PASSWORD" ; \
+	    printf '\nPROD_DB_PASSWORD=%s\n' "$$POSTGRES_PASSWORD_VALUE" >> .env.local ; \
+	  fi ; \
+	fi
 
 env-check: ## Vérifie .env -> .env.$(APP_ENV) et docker-compose.$(APP_ENV).yml
 	test -L .env || { echo "Symlink .env manquant (ex: ln -snf .env.dev .env)"; exit 1; }
@@ -116,9 +123,10 @@ pull-prod-backup: env-check backups-dir ## DEV: télécharge le dernier backup P
 	test "$(APP_ENV)" = "dev" || { echo "Refusé: cible DEV seulement (.env -> .env.dev)"; exit 2; } ; \
 	set -a ; . ./.env.prod ; [ -f ./.env.local ] && . ./.env.local || true ; set +a ; \
 	: "$${APP_SLUG:?APP_SLUG manquant dans .env.prod}" ; \
+	PROD_SSH_HOST="$${PROD_SSH_HOST:-$${PROD_SSH:-}}" ; \
 	: "$${PROD_SSH_HOST:?PROD_SSH_HOST manquant (mettre la valeur dans .env.local)}" ; \
-	LOCAL_DIR="$${BACKUP_DIR:-backups}" ; mkdir -p "$$LOCAL_DIR" ; \
-	REMOTE_DIR="$${PROD_BACKUP_DIR:-/opt/apps/$${APP_SLUG}/backups}" ; \
+	LOCAL_DIR="$${BACKUP_DIR:-$${DEV_BACKUPS_DIR:-backups}}" ; mkdir -p "$$LOCAL_DIR" ; \
+	REMOTE_DIR="$${PROD_BACKUPS_DIR:-$${PROD_BACKUP_DIR:-/opt/apps/$${APP_SLUG}/backups}}" ; \
 	REMOTE_FILE="$${REMOTE_BACKUP:-}" ; \
 	if [ -z "$$REMOTE_FILE" ]; then \
 	  REMOTE_FILE="$$(ssh -o BatchMode=yes "$$PROD_SSH_HOST" "ls -1t '$$REMOTE_DIR'/*.sql.gz 2>/dev/null | head -n1")" ; \
