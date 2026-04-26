@@ -6,4 +6,6 @@ django-cors-headers>=4.4
 python-dateutil>=2.9
 gunicorn>=22.0
 whitenoise>=6.6
+icalendar
+python-dateutil
 
