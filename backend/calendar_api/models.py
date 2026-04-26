@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 
 class Calendar(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="calendars")
@@ -23,8 +24,16 @@ class Event(models.Model):
     end = models.DateTimeField()
     all_day = models.BooleanField(default=False)
     location = models.CharField(max_length=200, blank=True)
+    external_uid = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["start"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["calendar", "external_uid"],
+                condition=Q(external_uid__isnull=False) & ~Q(external_uid=""),
+                name="uniq_event_calendar_external_uid",
+            )
+        ]

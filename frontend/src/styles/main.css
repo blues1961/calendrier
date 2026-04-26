@@ -359,6 +359,7 @@ body {
 .editor-field input[type="text"],
 .editor-field input[type="password"],
 .editor-field input[type="datetime-local"],
+.editor-field input[type="file"],
 .editor-field input[type="number"],
 .editor-field textarea,
 .editor-field select {
@@ -568,6 +569,37 @@ body {
 
 .calendar-sidebar__foot {
   margin-top: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.import-ics {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--calendar-item-border);
+  background: var(--calendar-item-bg);
+}
+
+.import-ics__head h4 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.import-ics__head p {
+  margin: 6px 0 0;
+  color: var(--text-dim);
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.import-ics__success {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(76, 141, 255, 0.3);
+  background: rgba(76, 141, 255, 0.12);
+  color: var(--text);
 }
 
 .calendar-main {

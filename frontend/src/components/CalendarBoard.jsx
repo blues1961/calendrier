@@ -6,6 +6,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css'
 import { api } from '../api'
 import CalendarEditor from './CalendarEditor'
 import EventEditor from './EventEditor'
+import ImportIcs from './ImportIcs'
 
 const locales = { fr }
 const localizer = dateFnsLocalizer({
@@ -99,6 +100,10 @@ export default function CalendarBoard({ sidebarOpen = true }){
   )
   const allSelected = cals.length > 0 && selectedCount === cals.length
   const partiallySelected = selectedCount > 0 && !allSelected
+  const defaultCalendarId = useMemo(
+    () => cals.find(c => c.is_default)?.id ?? cals[0]?.id ?? null,
+    [cals]
+  )
 
   useEffect(() => {
     if (selectAllRef.current) selectAllRef.current.indeterminate = partiallySelected
@@ -206,6 +211,14 @@ export default function CalendarBoard({ sidebarOpen = true }){
           </ul>
           <div className="calendar-sidebar__foot">
             <button className="btn" onClick={() => setCreatingCal(true)}>Ajouter un calendrier</button>
+            <ImportIcs
+              calendars={cals}
+              defaultCalendarId={defaultCalendarId}
+              onImported={async ({ calendarId }) => {
+                setSelected(prev => new Set(prev).add(calendarId))
+                await reloadData()
+              }}
+            />
           </div>
         </aside>
       )}
