@@ -19,10 +19,10 @@ Le `Makefile` est la méthode recommandée pour les commandes courantes. Il dél
 `make init` appelle :
 
 ```bash
-./scripts/init.sh dev
+./scripts/init.sh
 ```
 
-Ce script initialise le projet, prépare les fichiers d’environnement, valide les invariants et démarre les services Docker.
+Ce script lit `.env.template`, respecte le lien `.env` déjà en place, génère ou complète les fichiers d’environnement, valide les invariants et ne démarre les services que si nécessaire.
 
 ---
 
@@ -138,7 +138,7 @@ Séquence exécutée :
 
 Prérequis :
 
-* `.env` doit pointer vers le bon environnement ;
+* `.env` doit pointer vers le bon environnement avant `make init` ;
 * l’arbre Git local doit permettre `git pull --ff-only` ;
 * Docker et les services requis doivent être disponibles.
 
@@ -215,13 +215,24 @@ En cas de besoin :
 cp .env.template.example .env.template
 ```
 
-Puis remplir les variables d’identité du projet dans `.env.template` :
+Puis remplir les variables du projet dans `.env.template` :
 
 ```bash
 APP_NAME=
 APP_SLUG=
 APP_DEPOT=
 APP_NO=
+ADMIN_USERNAME=
+ADMIN_PASSWORD=
+ADMIN_EMAIL=
+```
+
+Puis choisir l’environnement actif :
+
+```bash
+make dev
+# ou
+make prod
 ```
 
 Ensuite :
@@ -230,7 +241,7 @@ Ensuite :
 ./scripts/generate-env.sh
 ```
 
-`./scripts/generate-env.sh` lit uniquement l’identité du projet depuis `.env.template`, puis régénère `.env.dev` et `.env.prod` et y recalcule notamment :
+`./scripts/generate-env.sh` lit l’identité du projet et les variables `ADMIN_*` de bootstrap depuis `.env.template`, puis régénère `.env.dev` et `.env.prod` et y recalcule notamment :
 
 * `POSTGRES_USER` et `POSTGRES_DB` à partir de `APP_SLUG` ;
 * `DEV_DB_PORT`, `DEV_VITE_PORT` et `DEV_API_PORT` à partir de `APP_NO` ;

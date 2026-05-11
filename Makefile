@@ -10,7 +10,7 @@ help:
 		'' \
 		'Cibles disponibles :' \
 		'  help      Affiche cette aide' \
-		'  init      Initialise le projet en développement (scripts/init.sh dev)' \
+		'  init      Initialise le projet dans l’environnement pointé par .env (scripts/init.sh)' \
 		'  dev       Bascule l’environnement actif vers .env.dev' \
 		'  prod      Bascule l’environnement actif vers .env.prod' \
 		'  up        Démarre les services de l’environnement actif' \
@@ -32,7 +32,7 @@ help:
 		'            Restaure le fichier de backup spécifié'
 
 init:
-	$(SCRIPTS_DIR)/init.sh dev
+	$(SCRIPTS_DIR)/init.sh
 
 dev:
 	$(SCRIPTS_DIR)/env-switch.sh dev

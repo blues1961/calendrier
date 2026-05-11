@@ -63,6 +63,20 @@ Règles :
 * `.env` doit être un lien symbolique vers `.env.dev` ou `.env.prod` ;
 * `.env` ne doit jamais être modifié directement.
 
+Le contenu canonique de `.env.template.example` est :
+
+```env
+APP_NAME=
+APP_SLUG=
+APP_DEPOT=
+APP_NO=
+ADMIN_USERNAME=
+ADMIN_PASSWORD=
+ADMIN_EMAIL=
+```
+
+`ADMIN_USERNAME`, `ADMIN_PASSWORD` et `ADMIN_EMAIL` servent au bootstrap initial puis doivent se retrouver dans `.env.local`.
+
 ---
 
 ## 3. Secrets
@@ -192,6 +206,8 @@ Le changement d’environnement doit se faire avec :
 ./scripts/env-switch.sh dev
 ./scripts/env-switch.sh prod
 ```
+
+`init.sh` ne doit jamais modifier ce lien. Il doit utiliser l’environnement déjà pointé par `.env`, fonctionner aussi bien en `dev` qu’en `prod`, et pouvoir être relancé sans écraser les conteneurs déjà actifs.
 
 ## 9. Commandes Docker
 
