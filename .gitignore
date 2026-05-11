@@ -1,87 +1,13 @@
-# ============================
-# Environnements et secrets
-# ============================
 .env
-.env.*
-# Autoriser les fichiers d'environnement versionnés
-!.env.dev
-!.env.prod
-!.env.prod.example
-!.env.local.example
-.env.dev.local
-.env.prod.local
 .env.local
-*.bak
-*.sql
-*.dump
-*.tar.gz
-
-# ============================
-# Python / Django
-# ============================
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-*.so
-*.egg-info/
-*.egg
-*.log
-db.sqlite3
-media/
-staticfiles/
-
-# ============================
-# Virtualenv / Conda
-# ============================
-venv/
-ENV/
-env/
-.venv/
-
-# ============================
-# PostgreSQL volumes / backups
-# ============================
-db_data_dev/
-db_data_prod/
-backups/
-*.backup
-
-# ============================
-# Node / React (Vite)
-# ============================
+.env.template
 node_modules/
 dist/
 build/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# ============================
-# IDEs / OS
-# ============================
-.vscode/
-.idea/
-*.swp
-*.swo
-.DS_Store
-Thumbs.db
-*lock.json
-
-# ============================
-# Docker
-# ============================
-*.pid
-*.seed
-*.pid.lock
-docker-compose.override.yml
-
-# env locaux (jamais versionner)
-.env.local
-
-# local env
-.env.local
-frontend/.env.development.local
-# backups
+__pycache__/
+*.pyc
+*.log
+*.bak
+backup/*
+!backup/.gitkeep
 backups/

@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:16
+    image: postgres:16-alpine
     container_name: ${APP_SLUG}_db_${APP_ENV}
     env_file:
       - .env.dev
@@ -8,7 +8,7 @@ services:
     ports:
       - "${DEV_DB_PORT}:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h 127.0.0.1"]
       interval: 5s
@@ -18,39 +18,37 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: ${APP_SLUG}_backend_${APP_ENV}
+    command: /app/entrypoint.sh python manage.py runserver 0.0.0.0:8000
     env_file:
       - .env.dev
       - .env.local
-    depends_on:
-      db:
-        condition: service_healthy
     volumes:
       - ./backend:/app
     ports:
       - "${DEV_API_PORT}:8000"
-    command: ["bash","-lc","python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+    depends_on:
+      db:
+        condition: service_healthy
 
-  vite:
-    image: node:20-bookworm-slim
-    container_name: ${APP_SLUG}_vite_${APP_ENV}
-    working_dir: /app
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: ${APP_SLUG}_frontend_${APP_ENV}
+    command: npm run dev -- --host 0.0.0.0 --port 5173
     env_file:
       - .env.dev
       - .env.local
-    environment:
-      VITE_API_BASE: "/api"
     volumes:
       - ./frontend:/app
-      - node_modules:/app/node_modules
+      - frontend_node_modules:/app/node_modules
     ports:
-      - "${DEV_VITE_PORT}:5173"  # Vite dev server (HMR)
-    command: ["bash","-lc","( [ -d node_modules ] && [ -f node_modules/.ready ] ) || (npm ci || npm install; touch node_modules/.ready); npm run dev -- --host 0.0.0.0 --port 5173"]
-    restart: unless-stopped
+      - "${DEV_VITE_PORT}:5173"
+    depends_on:
+      - backend
 
 volumes:
-  pgdata:
-    name: ${APP_SLUG}_${APP_ENV}_pgdata
-  node_modules:
-    name: ${APP_SLUG}_${APP_ENV}_node_modules
+  postgres_data:
+  frontend_node_modules:

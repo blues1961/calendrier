@@ -9,7 +9,7 @@ from rest_framework import parsers, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .models import Calendar, Event
+from .models import Calendar, Event, ensure_birthday_calendar
 from .serializers import CalendarSerializer, EventSerializer
 
 class IsOwner(permissions.BasePermission):
@@ -26,6 +26,7 @@ class CalendarViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsOwner]
 
     def get_queryset(self):
+        ensure_birthday_calendar(self.request.user)
         return Calendar.objects.filter(owner=self.request.user)
 
     def perform_create(self, serializer):
@@ -36,6 +37,7 @@ class EventViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsOwner]
 
     def get_queryset(self):
+        ensure_birthday_calendar(self.request.user)
         return Event.objects.filter(calendar__owner=self.request.user)
 
     @action(

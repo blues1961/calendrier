@@ -1,13 +1,15 @@
 from rest_framework import serializers
-from .models import Calendar, Event
+from .models import Calendar, Event, calendar_represents_birthdays
 
 class CalendarSerializer(serializers.ModelSerializer):
     class Meta:
         model = Calendar
-        fields = ["id", "name", "color", "is_default"]
+        fields = ["id", "name", "color", "is_default", "kind"]
+        read_only_fields = ["kind"]
 
 class EventSerializer(serializers.ModelSerializer):
     calendar_name = serializers.ReadOnlyField(source="calendar.name")
+    kind = serializers.SerializerMethodField()
 
     def validate_calendar(self, value):
         request = self.context.get("request")
@@ -15,12 +17,18 @@ class EventSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Ce calendrier ne vous appartient pas.")
         return value
 
+    def get_kind(self, obj):
+        if calendar_represents_birthdays(obj.calendar):
+            return "birthday"
+        return "event"
+
     class Meta:
         model = Event
         fields = [
             "id",
             "calendar",
             "calendar_name",
+            "kind",
             "title",
             "description",
             "start",
@@ -28,3 +36,4 @@ class EventSerializer(serializers.ModelSerializer):
             "all_day",
             "location",
         ]
+        read_only_fields = ["kind", "calendar_name"]
