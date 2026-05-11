@@ -1,10 +1,11 @@
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
+from .integrations import build_contact_birthday_external_uid, compute_next_birthday_occurrence
 from .models import BIRTHDAY_CALENDAR_NAME, Calendar, Event
 
 
@@ -15,6 +16,12 @@ class CalendarApiTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="sylvain", password="testpass123")
         self.other_user = User.objects.create_user(username="alice", password="testpass123")
+        self.admin_user = User.objects.create_user(
+            username="contact-sync",
+            password="testpass123",
+            is_staff=True,
+            is_superuser=True,
+        )
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
 
@@ -126,3 +133,59 @@ class CalendarApiTests(APITestCase):
         self.assertFalse(Calendar.objects.filter(pk=empty_system.pk).exists())
         legacy_calendar.refresh_from_db()
         self.assertEqual(legacy_calendar.kind, Calendar.Kind.BIRTHDAYS)
+
+    def test_contact_birthday_sync_endpoint_upserts_event_for_owner(self):
+        self.client.force_authenticate(user=self.admin_user)
+
+        response = self.client.post(
+            "/api/integrations/contact-birthdays/sync/",
+            {
+                "owner_username": "sylvain",
+                "contact_id": "42",
+                "name": "Marie",
+                "birthday": "1988-04-12",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        event = Event.objects.get(external_uid=build_contact_birthday_external_uid("sylvain", "42"))
+        self.assertEqual(event.calendar.owner, self.user)
+        self.assertEqual(event.calendar.kind, Calendar.Kind.BIRTHDAYS)
+        self.assertEqual(event.title, "Marie")
+        self.assertTrue(event.all_day)
+        self.assertEqual(event.start.date(), compute_next_birthday_occurrence(date(1988, 4, 12)))
+
+    def test_contact_birthday_sync_endpoint_deletes_existing_event_when_payload_is_empty(self):
+        birthday_calendar = Calendar.objects.create(
+            owner=self.user,
+            name=BIRTHDAY_CALENDAR_NAME,
+            color="#d81b60",
+            is_default=False,
+            kind=Calendar.Kind.BIRTHDAYS,
+        )
+        Event.objects.create(
+            calendar=birthday_calendar,
+            title="Marie",
+            start=timezone.now() + timedelta(days=10),
+            end=timezone.now() + timedelta(days=10, hours=1),
+            all_day=True,
+            external_uid=build_contact_birthday_external_uid("sylvain", "42"),
+        )
+
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.post(
+            "/api/integrations/contact-birthdays/sync/",
+            {
+                "owner_username": "sylvain",
+                "contact_id": "42",
+                "name": "",
+                "birthday": None,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(
+            Event.objects.filter(external_uid=build_contact_birthday_external_uid("sylvain", "42")).exists()
+        )

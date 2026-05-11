@@ -171,6 +171,26 @@ Règles métier :
 - les autres calendriers portent `kind=personal` ;
 - l'API des événements doit exposer un `kind` explicite `event` ou `birthday`.
 
+Contrat d'intégration avec `Contacts` :
+
+- `POST /api/integrations/contact-birthdays/sync/`
+- authentification requise ;
+- accès réservé à un usager admin de `Calendrier` ;
+- payload attendu :
+
+```json
+{
+  "owner_username": "sylvain",
+  "contact_id": "42",
+  "name": "Marie",
+  "birthday": "1988-04-12"
+}
+```
+
+- si `name` est vide ou `birthday` est nul, l'événement anniversaire correspondant est supprimé ;
+- l'usager `owner_username` doit exister dans `Calendrier` ;
+- l'événement est identifié de façon stable par `external_uid=contact-birthday:<owner_username>:<contact_id>`.
+
 ## 9. Commandes d'exploitation
 
 Les commandes standard passent par le `Makefile` :

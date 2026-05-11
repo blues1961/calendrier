@@ -2,15 +2,21 @@ from datetime import date, datetime, time, timedelta
 
 from dateutil.tz import gettz
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
 from icalendar import Calendar as ICalendar
-from rest_framework import parsers, permissions, status, viewsets
+from rest_framework import parsers, permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
+from .integrations import delete_contact_birthday, sync_contact_birthday
 from .models import Calendar, Event, ensure_birthday_calendar
 from .serializers import CalendarSerializer, EventSerializer
+
+
+User = get_user_model()
 
 class IsOwner(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
@@ -112,6 +118,50 @@ class EventViewSet(viewsets.ModelViewSet):
                 imported += 1
 
         return Response({"imported": imported, "skipped": skipped}, status=status.HTTP_200_OK)
+
+
+class ContactBirthdaySyncSerializer(serializers.Serializer):
+    owner_username = serializers.CharField()
+    contact_id = serializers.CharField()
+    name = serializers.CharField(required=False, allow_blank=True, default="")
+    birthday = serializers.DateField(required=False, allow_null=True, default=None)
+
+
+class ContactBirthdaySyncView(APIView):
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
+
+    def post(self, request):
+        serializer = ContactBirthdaySyncSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        owner_username = serializer.validated_data["owner_username"]
+        contact_id = serializer.validated_data["contact_id"]
+        name = serializer.validated_data.get("name", "").strip()
+        birthday = serializer.validated_data.get("birthday")
+
+        if not name or birthday is None:
+            deleted_count = delete_contact_birthday(
+                owner_username=owner_username,
+                contact_id=contact_id,
+            )
+            return Response({"status": "deleted", "deleted": deleted_count}, status=status.HTTP_200_OK)
+
+        if not User.objects.filter(username=owner_username).exists():
+            return Response(
+                {"detail": "Utilisateur Calendrier introuvable."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        event = sync_contact_birthday(
+            owner_username=owner_username,
+            contact_id=contact_id,
+            name=name,
+            birthday=birthday,
+        )
+        return Response(
+            {"status": "synced", "event_id": event.id, "calendar_id": event.calendar_id},
+            status=status.HTTP_200_OK,
+        )
 
 
 def _unwrap_ical_value(value):
