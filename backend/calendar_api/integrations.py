@@ -49,6 +49,9 @@ def sync_contact_birthday(*, owner_username: str, contact_id: str | int, name: s
             all_day=True,
             location="",
             external_uid=external_uid,
+            recurrence=Event.Recurrence.YEARLY,
+            recurrence_month=birthday.month,
+            recurrence_day=birthday.day,
         )
 
     event.calendar = birthday_calendar
@@ -59,6 +62,9 @@ def sync_contact_birthday(*, owner_username: str, contact_id: str | int, name: s
     event.all_day = True
     event.location = ""
     event.external_uid = external_uid
+    event.recurrence = Event.Recurrence.YEARLY
+    event.recurrence_month = birthday.month
+    event.recurrence_day = birthday.day
     event.save()
     return event
 

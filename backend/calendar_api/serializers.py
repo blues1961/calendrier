@@ -10,6 +10,9 @@ class CalendarSerializer(serializers.ModelSerializer):
 class EventSerializer(serializers.ModelSerializer):
     calendar_name = serializers.ReadOnlyField(source="calendar.name")
     kind = serializers.SerializerMethodField()
+    recurrence = serializers.ReadOnlyField()
+    month = serializers.ReadOnlyField(source="recurrence_month")
+    day = serializers.ReadOnlyField(source="recurrence_day")
 
     def validate_calendar(self, value):
         request = self.context.get("request")
@@ -35,5 +38,8 @@ class EventSerializer(serializers.ModelSerializer):
             "end",
             "all_day",
             "location",
+            "recurrence",
+            "month",
+            "day",
         ]
-        read_only_fields = ["kind", "calendar_name"]
+        read_only_fields = ["kind", "calendar_name", "recurrence", "month", "day"]

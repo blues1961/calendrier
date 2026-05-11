@@ -69,7 +69,7 @@ export const api = {
     remove: async (id) => (await instance.delete(`calendars/${id}/`)).data,
   },
   events: {
-    list: async () => (await instance.get('events/')).data,
+    list: async (params = null) => (await instance.get('events/', { params: params || undefined })).data,
     create: async (payload) => (await instance.post('events/', payload)).data,
     importIcs: async (formData) => (await instance.post('events/import-ics/', formData)).data,
     update: async (id, payload) => (await instance.put(`events/${id}/`, payload)).data,

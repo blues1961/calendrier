@@ -168,6 +168,7 @@ Règles métier :
 
 - l'application garantit un calendrier système `Anniversaires` par usager ;
 - ce calendrier porte `kind=birthdays` ;
+- les anniversaires synchronisés y sont stockés avec une récurrence annuelle ;
 - les autres calendriers portent `kind=personal` ;
 - l'API des événements doit exposer un `kind` explicite `event` ou `birthday`.
 

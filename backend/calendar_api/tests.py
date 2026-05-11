@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -154,7 +154,76 @@ class CalendarApiTests(APITestCase):
         self.assertEqual(event.calendar.kind, Calendar.Kind.BIRTHDAYS)
         self.assertEqual(event.title, "Marie")
         self.assertTrue(event.all_day)
+        self.assertEqual(event.recurrence, Event.Recurrence.YEARLY)
+        self.assertEqual(event.recurrence_month, 4)
+        self.assertEqual(event.recurrence_day, 12)
         self.assertEqual(event.start.date(), compute_next_birthday_occurrence(date(1988, 4, 12)))
+
+    def test_events_list_expands_yearly_birthday_for_requested_range(self):
+        birthday_calendar = Calendar.objects.create(
+            owner=self.user,
+            name=BIRTHDAY_CALENDAR_NAME,
+            color="#d81b60",
+            is_default=False,
+            kind=Calendar.Kind.BIRTHDAYS,
+        )
+        Event.objects.create(
+            calendar=birthday_calendar,
+            title="Marie",
+            start=timezone.make_aware(datetime(2026, 5, 12, 0, 1)),
+            end=timezone.make_aware(datetime(2026, 5, 12, 23, 59)),
+            all_day=True,
+            recurrence=Event.Recurrence.YEARLY,
+            recurrence_month=5,
+            recurrence_day=12,
+        )
+
+        response = self.client.get(
+            "/api/events/",
+            {
+                "range_start": "2027-05-01T00:00:00-04:00",
+                "range_end": "2027-05-31T23:59:00-04:00",
+            },
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["kind"], "birthday")
+        self.assertEqual(response.data[0]["recurrence"], "yearly")
+        self.assertEqual(response.data[0]["month"], 5)
+        self.assertEqual(response.data[0]["day"], 12)
+        self.assertTrue(response.data[0]["start"].startswith("2027-05-12T"))
+
+    def test_events_list_expands_february_29_birthday_to_february_28_on_non_leap_year(self):
+        birthday_calendar = Calendar.objects.create(
+            owner=self.user,
+            name=BIRTHDAY_CALENDAR_NAME,
+            color="#d81b60",
+            is_default=False,
+            kind=Calendar.Kind.BIRTHDAYS,
+        )
+        Event.objects.create(
+            calendar=birthday_calendar,
+            title="Jour bissextile",
+            start=timezone.make_aware(datetime(2024, 2, 29, 0, 1)),
+            end=timezone.make_aware(datetime(2024, 2, 29, 23, 59)),
+            all_day=True,
+            recurrence=Event.Recurrence.YEARLY,
+            recurrence_month=2,
+            recurrence_day=29,
+        )
+
+        response = self.client.get(
+            "/api/events/",
+            {
+                "range_start": "2027-02-01T00:00:00-05:00",
+                "range_end": "2027-02-28T23:59:00-05:00",
+            },
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertTrue(response.data[0]["start"].startswith("2027-02-28T"))
 
     def test_contact_birthday_sync_endpoint_deletes_existing_event_when_payload_is_empty(self):
         birthday_calendar = Calendar.objects.create(

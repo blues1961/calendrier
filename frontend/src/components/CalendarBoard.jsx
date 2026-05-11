@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar'
-import { format, parse, startOfWeek, getDay } from 'date-fns'
+import { addDays, endOfDay, endOfMonth, endOfWeek, format, getDay, parse, startOfDay, startOfMonth, startOfWeek } from 'date-fns'
 import fr from 'date-fns/locale/fr'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 import { api } from '../api'
@@ -42,6 +42,7 @@ export default function CalendarBoard({ sidebarOpen = true }){
   const [editingCal, setEditingCal] = useState(null)
   const [editingEvt, setEditingEvt] = useState(null)
   const [view, setView] = useState('month')
+  const [currentDate, setCurrentDate] = useState(new Date())
 
   // Tooltip enrichi: titre, lieu, notes, plage horaire
   const EventWithTooltip = ({ event, title }) => {
@@ -58,14 +59,29 @@ export default function CalendarBoard({ sidebarOpen = true }){
   }
 
   useEffect(() => { (async () => {
-      const [cs, es] = await Promise.all([api.calendars.list(), api.events.list()])
+      const cs = await api.calendars.list()
       setCals(cs)
       setSelected(new Set(cs.map(c => c.id)))
-      setEvents(es.map(e => ({ ...e, start: new Date(e.start), end: new Date(e.end) })))
   })() }, [])
 
+  useEffect(() => { (async () => {
+      const range = getVisibleRange(view, currentDate)
+      const es = await api.events.list({
+        range_start: range.start.toISOString(),
+        range_end: range.end.toISOString(),
+      })
+      setEvents(es.map(e => ({ ...e, start: new Date(e.start), end: new Date(e.end) })))
+  })() }, [view, currentDate])
+
   async function reloadData({ removedId } = {}){
-    const [cs, es] = await Promise.all([api.calendars.list(), api.events.list()])
+    const range = getVisibleRange(view, currentDate)
+    const [cs, es] = await Promise.all([
+      api.calendars.list(),
+      api.events.list({
+        range_start: range.start.toISOString(),
+        range_end: range.end.toISOString(),
+      }),
+    ])
     setCals(cs)
     setSelected(prev => {
       const s = new Set(prev)
@@ -310,7 +326,9 @@ export default function CalendarBoard({ sidebarOpen = true }){
             selectable="ignoreEvents"
             onSelectSlot={handleSlotSelect}
             view={view}
+            date={currentDate}
             onView={setView}
+            onNavigate={setCurrentDate}
             components={{ event: EventWithTooltip }}
             eventPropGetter={eventPropGetter}
             onSelectEvent={(ev) => setEditingEvt(ev)}
@@ -319,4 +337,34 @@ export default function CalendarBoard({ sidebarOpen = true }){
       </main>
     </div>
   )
+}
+
+function getVisibleRange(view, currentDate) {
+  const date = currentDate instanceof Date ? currentDate : new Date(currentDate)
+
+  if (view === 'week') {
+    return {
+      start: startOfDay(startOfWeek(date, { weekStartsOn: 1 })),
+      end: endOfDay(endOfWeek(date, { weekStartsOn: 1 })),
+    }
+  }
+
+  if (view === 'day') {
+    return {
+      start: startOfDay(date),
+      end: endOfDay(date),
+    }
+  }
+
+  if (view === 'agenda') {
+    return {
+      start: startOfDay(date),
+      end: endOfDay(addDays(date, 29)),
+    }
+  }
+
+  return {
+    start: startOfDay(startOfWeek(startOfMonth(date), { weekStartsOn: 1 })),
+    end: endOfDay(endOfWeek(endOfMonth(date), { weekStartsOn: 1 })),
+  }
 }

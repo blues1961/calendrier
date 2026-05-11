@@ -44,7 +44,27 @@ class EventViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         ensure_birthday_calendar(self.request.user)
-        return Event.objects.filter(calendar__owner=self.request.user)
+        return Event.objects.filter(calendar__owner=self.request.user).select_related("calendar")
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        range_start, range_end = _parse_event_window(request)
+
+        payload = []
+        serializer_context = self.get_serializer_context()
+        for event in queryset:
+            for occurrence_start, occurrence_end in _iter_event_occurrences(
+                event,
+                range_start=range_start,
+                range_end=range_end,
+            ):
+                serialized = EventSerializer(event, context=serializer_context).data
+                serialized["start"] = occurrence_start.isoformat()
+                serialized["end"] = occurrence_end.isoformat()
+                payload.append(serialized)
+
+        payload.sort(key=lambda item: item["start"])
+        return Response(payload, status=status.HTTP_200_OK)
 
     @action(
         detail=False,
@@ -214,3 +234,96 @@ def _normalize_event_window(start_value, end_value):
         return start_dt, end_dt, True
 
     raise ValueError("Type DTSTART invalide")
+
+
+def _parse_event_window(request):
+    start_value = request.query_params.get("range_start")
+    end_value = request.query_params.get("range_end")
+
+    range_start = _parse_range_value(start_value)
+    range_end = _parse_range_value(end_value)
+
+    if range_start and range_end and range_end < range_start:
+        range_end = range_start
+
+    return range_start, range_end
+
+
+def _parse_range_value(value):
+    if not value:
+        return None
+
+    normalized = str(value).strip().replace("Z", "+00:00")
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+
+    return _make_aware(parsed)
+
+
+def _iter_event_occurrences(event, *, range_start=None, range_end=None):
+    if event.recurrence != Event.Recurrence.YEARLY:
+        if _event_overlaps(event.start, event.end, range_start, range_end):
+            yield event.start, event.end
+        return
+
+    if range_start is None or range_end is None:
+        today = timezone.localdate()
+        next_date = _safe_recurrence_date(today.year, event.recurrence_month, event.recurrence_day)
+        if next_date < today:
+            next_date = _safe_recurrence_date(today.year + 1, event.recurrence_month, event.recurrence_day)
+        yield _build_occurrence_window(event, next_date)
+        return
+
+    local_tz = gettz(settings.TIME_ZONE) or timezone.get_default_timezone()
+    start_local = range_start.astimezone(local_tz)
+    end_local = range_end.astimezone(local_tz)
+
+    for year in range(start_local.year - 1, end_local.year + 2):
+        occurrence_date = _safe_recurrence_date(year, event.recurrence_month, event.recurrence_day)
+        occurrence_start, occurrence_end = _build_occurrence_window(event, occurrence_date)
+        if _event_overlaps(occurrence_start, occurrence_end, range_start, range_end):
+            yield occurrence_start, occurrence_end
+
+
+def _build_occurrence_window(event, target_date):
+    local_tz = gettz(settings.TIME_ZONE) or timezone.get_default_timezone()
+    base_start = event.start.astimezone(local_tz)
+    duration = event.end - event.start
+    if duration.total_seconds() < 0:
+        duration = timedelta(0)
+
+    occurrence_start = timezone.make_aware(
+        datetime.combine(
+            target_date,
+            time(
+                base_start.hour,
+                base_start.minute,
+                base_start.second,
+                base_start.microsecond,
+            ),
+        ),
+        local_tz,
+    )
+    occurrence_end = occurrence_start + duration
+    return occurrence_start, occurrence_end
+
+
+def _safe_recurrence_date(year, month, day):
+    if not month or not day:
+        raise ValueError("Récurrence annuelle incomplète.")
+    try:
+        return date(year, month, day)
+    except ValueError:
+        if month == 2 and day == 29:
+            return date(year, 2, 28)
+        raise
+
+
+def _event_overlaps(start_dt, end_dt, range_start, range_end):
+    if range_start is not None and end_dt < range_start:
+        return False
+    if range_end is not None and start_dt > range_end:
+        return False
+    return True

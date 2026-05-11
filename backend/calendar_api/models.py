@@ -35,6 +35,10 @@ class Calendar(models.Model):
         return f"{self.name} ({self.owner})"
 
 class Event(models.Model):
+    class Recurrence(models.TextChoices):
+        NONE = "none", "None"
+        YEARLY = "yearly", "Yearly"
+
     calendar = models.ForeignKey(Calendar, on_delete=models.CASCADE, related_name="events")
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
@@ -43,6 +47,9 @@ class Event(models.Model):
     all_day = models.BooleanField(default=False)
     location = models.CharField(max_length=200, blank=True)
     external_uid = models.CharField(max_length=255, blank=True, null=True, db_index=True)
+    recurrence = models.CharField(max_length=16, choices=Recurrence.choices, default=Recurrence.NONE)
+    recurrence_month = models.PositiveSmallIntegerField(blank=True, null=True)
+    recurrence_day = models.PositiveSmallIntegerField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -246,6 +246,7 @@ Règles :
 * `Calendrier` est la source du dashboard pour les événements à venir et les anniversaires à venir.
 * L’application garantit un calendrier système `Anniversaires` par usager.
 * Ce calendrier porte `kind=birthdays`.
+* Un anniversaire synchronisé doit rester visible d’une année à l’autre via une récurrence annuelle réelle.
 * Les autres calendriers portent `kind=personal`.
 * L’API des événements doit exposer un `kind` explicite :
 
