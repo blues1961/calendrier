@@ -172,6 +172,15 @@ Règles métier :
 - les autres calendriers portent `kind=personal` ;
 - l'API des événements doit exposer un `kind` explicite `event` ou `birthday`.
 
+Contrat d'intégration avec `Dashboard` :
+
+- `GET /api/integrations/dashboard/events/`
+- pas de session usager ; authentification technique via en-tête `X-Internal-Api-Token` ;
+- accès réservé aux appels inter-apps signés avec `CALENDRIER_API_TOKEN` ;
+- paramètre obligatoire `owner_username` ;
+- paramètres optionnels `range_start` et `range_end` ;
+- la réponse retourne directement les occurrences projetées dans la fenêtre demandée, avec un `kind` explicite `event` ou `birthday`.
+
 Contrat d'intégration avec `Contacts` :
 
 - `POST /api/integrations/contact-birthdays/sync/`

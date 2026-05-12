@@ -43,3 +43,16 @@ class EventSerializer(serializers.ModelSerializer):
             "day",
         ]
         read_only_fields = ["kind", "calendar_name", "recurrence", "month", "day"]
+
+
+class DashboardEventsQuerySerializer(serializers.Serializer):
+    owner_username = serializers.CharField()
+    range_start = serializers.DateTimeField(required=False, allow_null=True)
+    range_end = serializers.DateTimeField(required=False, allow_null=True)
+
+    def validate(self, attrs):
+        range_start = attrs.get("range_start")
+        range_end = attrs.get("range_end")
+        if range_start and range_end and range_end < range_start:
+            attrs["range_end"] = range_start
+        return attrs

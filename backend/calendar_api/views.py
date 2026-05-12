@@ -15,7 +15,7 @@ from rest_framework.views import APIView
 
 from .integrations import delete_contact_birthday, sync_contact_birthday
 from .models import Calendar, Event, ensure_birthday_calendar
-from .serializers import CalendarSerializer, EventSerializer
+from .serializers import CalendarSerializer, DashboardEventsQuerySerializer, EventSerializer
 
 
 User = get_user_model()
@@ -51,21 +51,12 @@ class EventViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
         range_start, range_end = _parse_event_window(request)
-
-        payload = []
-        serializer_context = self.get_serializer_context()
-        for event in queryset:
-            for occurrence_start, occurrence_end in _iter_event_occurrences(
-                event,
-                range_start=range_start,
-                range_end=range_end,
-            ):
-                serialized = EventSerializer(event, context=serializer_context).data
-                serialized["start"] = occurrence_start.isoformat()
-                serialized["end"] = occurrence_end.isoformat()
-                payload.append(serialized)
-
-        payload.sort(key=lambda item: item["start"])
+        payload = _serialize_event_occurrences(
+            queryset,
+            range_start=range_start,
+            range_end=range_end,
+            serializer_context=self.get_serializer_context(),
+        )
         return Response(payload, status=status.HTTP_200_OK)
 
     @action(
@@ -200,6 +191,44 @@ class ContactBirthdaySyncView(APIView):
             {"status": "synced", "event_id": event.id, "calendar_id": event.calendar_id},
             status=status.HTTP_200_OK,
         )
+
+
+class DashboardEventsView(APIView):
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        configured_token = str(os.getenv("CALENDRIER_API_TOKEN") or "").strip()
+        provided_token = str(request.META.get(CONTACT_SYNC_TOKEN_HEADER) or "").strip()
+
+        if not configured_token:
+            return Response(
+                {"detail": "CALENDRIER_API_TOKEN est manquant côté Calendrier."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        if not provided_token or not hmac.compare_digest(provided_token, configured_token):
+            return Response({"detail": "Lecture Dashboard Calendrier non autorisée."}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = DashboardEventsQuerySerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+
+        owner_username = serializer.validated_data["owner_username"]
+        owner = User.objects.filter(username=owner_username).first()
+        if owner is None:
+            return Response(
+                {"detail": "Utilisateur Calendrier introuvable."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        ensure_birthday_calendar(owner)
+        queryset = Event.objects.filter(calendar__owner=owner).select_related("calendar")
+        payload = _serialize_event_occurrences(
+            queryset,
+            range_start=serializer.validated_data.get("range_start"),
+            range_end=serializer.validated_data.get("range_end"),
+        )
+        return Response(payload, status=status.HTTP_200_OK)
 
 
 def _unwrap_ical_value(value):
@@ -345,3 +374,21 @@ def _event_overlaps(start_dt, end_dt, range_start, range_end):
     if range_end is not None and start_dt > range_end:
         return False
     return True
+
+
+def _serialize_event_occurrences(queryset, *, range_start=None, range_end=None, serializer_context=None):
+    payload = []
+    serializer_context = serializer_context or {}
+    for event in queryset:
+        for occurrence_start, occurrence_end in _iter_event_occurrences(
+            event,
+            range_start=range_start,
+            range_end=range_end,
+        ):
+            serialized = EventSerializer(event, context=serializer_context).data
+            serialized["start"] = occurrence_start.isoformat()
+            serialized["end"] = occurrence_end.isoformat()
+            payload.append(serialized)
+
+    payload.sort(key=lambda item: item["start"])
+    return payload

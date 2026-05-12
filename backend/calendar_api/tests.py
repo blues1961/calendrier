@@ -171,6 +171,75 @@ class CalendarApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_dashboard_events_endpoint_returns_requested_owner_events_with_internal_token(self):
+        birthday_calendar = Calendar.objects.create(
+            owner=self.user,
+            name=BIRTHDAY_CALENDAR_NAME,
+            color="#d81b60",
+            is_default=False,
+            kind=Calendar.Kind.BIRTHDAYS,
+        )
+        personal_calendar = Calendar.objects.create(
+            owner=self.user,
+            name="Maison",
+            color="#1976d2",
+            is_default=True,
+            kind=Calendar.Kind.PERSONAL,
+        )
+        now = timezone.now()
+        birthday_event = Event.objects.create(
+            calendar=birthday_calendar,
+            title="Anniversaire de Marie",
+            start=now + timedelta(days=1),
+            end=now + timedelta(days=1, hours=1),
+            all_day=False,
+        )
+        expected = Event.objects.create(
+            calendar=personal_calendar,
+            title="Réunion",
+            start=now + timedelta(days=2),
+            end=now + timedelta(days=2, hours=1),
+            all_day=False,
+        )
+        Event.objects.create(
+            calendar=Calendar.objects.create(
+                owner=self.other_user,
+                name="Privé",
+                color="#444444",
+                is_default=False,
+                kind=Calendar.Kind.PERSONAL,
+            ),
+            title="Ne doit pas apparaître",
+            start=now + timedelta(days=3),
+            end=now + timedelta(days=3, hours=1),
+            all_day=False,
+        )
+
+        with mock.patch.dict(os.environ, {"CALENDRIER_API_TOKEN": "shared-secret"}, clear=False):
+            response = APIClient().get(
+                "/api/integrations/dashboard/events/",
+                {
+                    "owner_username": "sylvain",
+                    "range_start": now.isoformat(),
+                    "range_end": (now + timedelta(days=14)).isoformat(),
+                },
+                HTTP_X_INTERNAL_API_TOKEN="shared-secret",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([item["id"] for item in response.data], [birthday_event.id, expected.id])
+        self.assertEqual({item["kind"] for item in response.data}, {"birthday", "event"})
+
+    def test_dashboard_events_endpoint_rejects_invalid_token(self):
+        with mock.patch.dict(os.environ, {"CALENDRIER_API_TOKEN": "shared-secret"}, clear=False):
+            response = APIClient().get(
+                "/api/integrations/dashboard/events/",
+                {"owner_username": "sylvain"},
+                HTTP_X_INTERNAL_API_TOKEN="wrong-token",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
     def test_events_list_expands_yearly_birthday_for_requested_range(self):
         birthday_calendar = Calendar.objects.create(
             owner=self.user,
