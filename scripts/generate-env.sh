@@ -221,6 +221,7 @@ ensure_local_key "ADMIN_EMAIL"
 ensure_local_key "ADMIN_PASSWORD"
 ensure_local_key "POSTGRES_PASSWORD"
 ensure_local_key "DJANGO_SECRET_KEY"
+ensure_local_key "CALENDAR_SYNC_TOKEN"
 
 ./scripts/generate-secrets.sh
 

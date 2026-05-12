@@ -1,4 +1,6 @@
 from datetime import date, datetime, timedelta
+import os
+from unittest import mock
 
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -16,12 +18,6 @@ class CalendarApiTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="sylvain", password="testpass123")
         self.other_user = User.objects.create_user(username="alice", password="testpass123")
-        self.admin_user = User.objects.create_user(
-            username="contact-sync",
-            password="testpass123",
-            is_staff=True,
-            is_superuser=True,
-        )
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
 
@@ -135,18 +131,18 @@ class CalendarApiTests(APITestCase):
         self.assertEqual(legacy_calendar.kind, Calendar.Kind.BIRTHDAYS)
 
     def test_contact_birthday_sync_endpoint_upserts_event_for_owner(self):
-        self.client.force_authenticate(user=self.admin_user)
-
-        response = self.client.post(
-            "/api/integrations/contact-birthdays/sync/",
-            {
-                "owner_username": "sylvain",
-                "contact_id": "42",
-                "name": "Marie",
-                "birthday": "1988-04-12",
-            },
-            format="json",
-        )
+        with mock.patch.dict(os.environ, {"CALENDAR_SYNC_TOKEN": "shared-secret"}, clear=False):
+            response = APIClient().post(
+                "/api/integrations/contact-birthdays/sync/",
+                {
+                    "owner_username": "sylvain",
+                    "contact_id": "42",
+                    "name": "Marie",
+                    "birthday": "1988-04-12",
+                },
+                format="json",
+                HTTP_X_CALENDAR_SYNC_TOKEN="shared-secret",
+            )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         event = Event.objects.get(external_uid=build_contact_birthday_external_uid("sylvain", "42"))
@@ -158,6 +154,22 @@ class CalendarApiTests(APITestCase):
         self.assertEqual(event.recurrence_month, 4)
         self.assertEqual(event.recurrence_day, 12)
         self.assertEqual(event.start.date(), compute_next_birthday_occurrence(date(1988, 4, 12)))
+
+    def test_contact_birthday_sync_endpoint_rejects_invalid_token(self):
+        with mock.patch.dict(os.environ, {"CALENDAR_SYNC_TOKEN": "shared-secret"}, clear=False):
+            response = APIClient().post(
+                "/api/integrations/contact-birthdays/sync/",
+                {
+                    "owner_username": "sylvain",
+                    "contact_id": "42",
+                    "name": "Marie",
+                    "birthday": "1988-04-12",
+                },
+                format="json",
+                HTTP_X_CALENDAR_SYNC_TOKEN="wrong-token",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_events_list_expands_yearly_birthday_for_requested_range(self):
         birthday_calendar = Calendar.objects.create(
@@ -242,17 +254,18 @@ class CalendarApiTests(APITestCase):
             external_uid=build_contact_birthday_external_uid("sylvain", "42"),
         )
 
-        self.client.force_authenticate(user=self.admin_user)
-        response = self.client.post(
-            "/api/integrations/contact-birthdays/sync/",
-            {
-                "owner_username": "sylvain",
-                "contact_id": "42",
-                "name": "",
-                "birthday": None,
-            },
-            format="json",
-        )
+        with mock.patch.dict(os.environ, {"CALENDAR_SYNC_TOKEN": "shared-secret"}, clear=False):
+            response = APIClient().post(
+                "/api/integrations/contact-birthdays/sync/",
+                {
+                    "owner_username": "sylvain",
+                    "contact_id": "42",
+                    "name": "",
+                    "birthday": None,
+                },
+                format="json",
+                HTTP_X_CALENDAR_SYNC_TOKEN="shared-secret",
+            )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(

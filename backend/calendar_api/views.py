@@ -1,4 +1,6 @@
 from datetime import date, datetime, time, timedelta
+import hmac
+import os
 
 from dateutil.tz import gettz
 from django.conf import settings
@@ -147,10 +149,26 @@ class ContactBirthdaySyncSerializer(serializers.Serializer):
     birthday = serializers.DateField(required=False, allow_null=True, default=None)
 
 
+CONTACT_SYNC_TOKEN_HEADER = "HTTP_X_CALENDAR_SYNC_TOKEN"
+
+
 class ContactBirthdaySyncView(APIView):
-    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
 
     def post(self, request):
+        configured_token = str(os.getenv("CALENDAR_SYNC_TOKEN") or "").strip()
+        provided_token = str(request.META.get(CONTACT_SYNC_TOKEN_HEADER) or "").strip()
+
+        if not configured_token:
+            return Response(
+                {"detail": "CALENDAR_SYNC_TOKEN est manquant côté Calendrier."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        if not provided_token or not hmac.compare_digest(provided_token, configured_token):
+            return Response({"detail": "Synchronisation Calendrier non autorisée."}, status=status.HTTP_403_FORBIDDEN)
+
         serializer = ContactBirthdaySyncSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
