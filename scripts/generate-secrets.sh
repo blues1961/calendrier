@@ -35,6 +35,8 @@ set_value_if_empty() {
 
 set_value_if_empty "POSTGRES_PASSWORD" "$(generate_secret)"
 set_value_if_empty "DJANGO_SECRET_KEY" "$(generate_secret)"
+set_value_if_empty "CALENDAR_SYNC_TOKEN" "$(generate_secret)"
 
 echo "Secrets générés dans .env.local"
 echo "Vérifie ensuite ADMIN_USERNAME, ADMIN_EMAIL et ADMIN_PASSWORD."
+echo "Si CALENDAR_SYNC_TOKEN est utilisé entre applications, garde exactement la même valeur des deux côtés."

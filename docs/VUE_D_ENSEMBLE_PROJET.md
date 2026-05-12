@@ -176,7 +176,7 @@ Contrat d'intégration avec `Contacts` :
 
 - `POST /api/integrations/contact-birthdays/sync/`
 - pas de session usager ; authentification technique via en-tête `X-Calendar-Sync-Token` ;
-- accès réservé aux appels inter-apps signés avec `CALENDAR_SYNC_TOKEN` ;
+- accès réservé aux appels inter-apps signés avec `CALENDAR_SYNC_TOKEN`, avec exactement la même valeur que côté `Contact` ;
 - payload attendu :
 
 ```json
