@@ -252,7 +252,7 @@ Le script crée aussi `.env.local` si nécessaire et ajoute sans écraser les cl
 
 * `ADMIN_USERNAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`
 * `POSTGRES_PASSWORD`, `DJANGO_SECRET_KEY`
-* `CALENDAR_SYNC_TOKEN`
+* `CALENDRIER_API_TOKEN`
 
 Les secrets sont générés par :
 

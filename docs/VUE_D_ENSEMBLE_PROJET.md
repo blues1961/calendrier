@@ -175,8 +175,8 @@ Règles métier :
 Contrat d'intégration avec `Contacts` :
 
 - `POST /api/integrations/contact-birthdays/sync/`
-- pas de session usager ; authentification technique via en-tête `X-Calendar-Sync-Token` ;
-- accès réservé aux appels inter-apps signés avec `CALENDAR_SYNC_TOKEN`, avec exactement la même valeur que côté `Contact` ;
+- pas de session usager ; authentification technique via en-tête `X-Internal-Api-Token` ;
+- accès réservé aux appels inter-apps signés avec `CALENDRIER_API_TOKEN`, dont la copie côté client doit être identique à celle de l'hôte `Calendrier` ;
 - payload attendu :
 
 ```json

@@ -131,7 +131,7 @@ class CalendarApiTests(APITestCase):
         self.assertEqual(legacy_calendar.kind, Calendar.Kind.BIRTHDAYS)
 
     def test_contact_birthday_sync_endpoint_upserts_event_for_owner(self):
-        with mock.patch.dict(os.environ, {"CALENDAR_SYNC_TOKEN": "shared-secret"}, clear=False):
+        with mock.patch.dict(os.environ, {"CALENDRIER_API_TOKEN": "shared-secret"}, clear=False):
             response = APIClient().post(
                 "/api/integrations/contact-birthdays/sync/",
                 {
@@ -141,7 +141,7 @@ class CalendarApiTests(APITestCase):
                     "birthday": "1988-04-12",
                 },
                 format="json",
-                HTTP_X_CALENDAR_SYNC_TOKEN="shared-secret",
+                HTTP_X_INTERNAL_API_TOKEN="shared-secret",
             )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -156,7 +156,7 @@ class CalendarApiTests(APITestCase):
         self.assertEqual(event.start.date(), compute_next_birthday_occurrence(date(1988, 4, 12)))
 
     def test_contact_birthday_sync_endpoint_rejects_invalid_token(self):
-        with mock.patch.dict(os.environ, {"CALENDAR_SYNC_TOKEN": "shared-secret"}, clear=False):
+        with mock.patch.dict(os.environ, {"CALENDRIER_API_TOKEN": "shared-secret"}, clear=False):
             response = APIClient().post(
                 "/api/integrations/contact-birthdays/sync/",
                 {
@@ -166,7 +166,7 @@ class CalendarApiTests(APITestCase):
                     "birthday": "1988-04-12",
                 },
                 format="json",
-                HTTP_X_CALENDAR_SYNC_TOKEN="wrong-token",
+                HTTP_X_INTERNAL_API_TOKEN="wrong-token",
             )
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
@@ -254,7 +254,7 @@ class CalendarApiTests(APITestCase):
             external_uid=build_contact_birthday_external_uid("sylvain", "42"),
         )
 
-        with mock.patch.dict(os.environ, {"CALENDAR_SYNC_TOKEN": "shared-secret"}, clear=False):
+        with mock.patch.dict(os.environ, {"CALENDRIER_API_TOKEN": "shared-secret"}, clear=False):
             response = APIClient().post(
                 "/api/integrations/contact-birthdays/sync/",
                 {
@@ -264,7 +264,7 @@ class CalendarApiTests(APITestCase):
                     "birthday": None,
                 },
                 format="json",
-                HTTP_X_CALENDAR_SYNC_TOKEN="shared-secret",
+                HTTP_X_INTERNAL_API_TOKEN="shared-secret",
             )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)

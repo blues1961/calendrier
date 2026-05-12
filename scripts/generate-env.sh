@@ -76,12 +76,22 @@ ensure_local_key() {
   fi
 }
 
+normalize_app_depot() {
+  local depot="$1"
+
+  printf '%s' "$depot" \
+    | tr '[:lower:]' '[:upper:]' \
+    | sed 's/[^A-Z0-9]/_/g'
+}
+
 load_template "$TEMPLATE"
 
 [ -n "${APP_NAME:-}" ] || { echo "APP_NAME manquant"; exit 1; }
 [ -n "${APP_SLUG:-}" ] || { echo "APP_SLUG manquant"; exit 1; }
 [ -n "${APP_DEPOT:-}" ] || { echo "APP_DEPOT manquant"; exit 1; }
 [ -n "${APP_NO:-}" ] || { echo "APP_NO manquant"; exit 1; }
+
+LOCAL_API_TOKEN_KEY="$(normalize_app_depot "$APP_DEPOT")_API_TOKEN"
 
 APP_HOST_TEMPLATE="${APP_HOST:-}"
 if [ -z "$APP_HOST_TEMPLATE" ]; then
@@ -221,7 +231,7 @@ ensure_local_key "ADMIN_EMAIL"
 ensure_local_key "ADMIN_PASSWORD"
 ensure_local_key "POSTGRES_PASSWORD"
 ensure_local_key "DJANGO_SECRET_KEY"
-ensure_local_key "CALENDAR_SYNC_TOKEN"
+ensure_local_key "$LOCAL_API_TOKEN_KEY"
 
 ./scripts/generate-secrets.sh
 

@@ -149,7 +149,7 @@ class ContactBirthdaySyncSerializer(serializers.Serializer):
     birthday = serializers.DateField(required=False, allow_null=True, default=None)
 
 
-CONTACT_SYNC_TOKEN_HEADER = "HTTP_X_CALENDAR_SYNC_TOKEN"
+CONTACT_SYNC_TOKEN_HEADER = "HTTP_X_INTERNAL_API_TOKEN"
 
 
 class ContactBirthdaySyncView(APIView):
@@ -157,12 +157,12 @@ class ContactBirthdaySyncView(APIView):
     authentication_classes = []
 
     def post(self, request):
-        configured_token = str(os.getenv("CALENDAR_SYNC_TOKEN") or "").strip()
+        configured_token = str(os.getenv("CALENDRIER_API_TOKEN") or "").strip()
         provided_token = str(request.META.get(CONTACT_SYNC_TOKEN_HEADER) or "").strip()
 
         if not configured_token:
             return Response(
-                {"detail": "CALENDAR_SYNC_TOKEN est manquant côté Calendrier."},
+                {"detail": "CALENDRIER_API_TOKEN est manquant côté Calendrier."},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 

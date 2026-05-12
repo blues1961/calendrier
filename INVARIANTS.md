@@ -91,7 +91,7 @@ DJANGO_SECRET_KEY=
 ADMIN_USERNAME=
 ADMIN_EMAIL=
 ADMIN_PASSWORD=
-CALENDAR_SYNC_TOKEN=
+CALENDRIER_API_TOKEN=
 ```
 
 Interdit :
@@ -100,6 +100,80 @@ Interdit :
 * secret dans `.env.prod` ;
 * secret dans Git ;
 * secret dans README, AGENTS.md ou CODEX_START.md.
+
+---
+
+## 3.1 Authentification inter-apps
+
+Les appels backend vers backend entre applications auto-hebergees doivent utiliser une methode universelle basee sur `APP_DEPOT`.
+
+### Nom canonique du token local
+
+Chaque application possede son propre token technique inter-apps.
+
+Le nom canonique de ce token est :
+
+```env
+<APP_DEPOT_NORMALISE>_API_TOKEN=
+```
+
+Regle de normalisation de `APP_DEPOT` :
+
+* convertir en majuscules ;
+* remplacer tout caractere non alphanumerique par `_` ;
+* ne jamais utiliser un nom metier specifique si un nom derive de `APP_DEPOT` est possible.
+
+Exemples :
+
+```env
+APP_DEPOT=contact
+CONTACT_API_TOKEN=
+
+APP_DEPOT=calendrier
+CALENDRIER_API_TOKEN=
+
+APP_DEPOT=pense-bete
+PENSE_BETE_API_TOKEN=
+```
+
+### Regles obligatoires
+
+* le token inter-apps d'une application appartient a l'application hote ;
+* ce token doit etre defini uniquement dans `.env.local` ;
+* `scripts/generate-secrets.sh` doit creer automatiquement le token local de l'application courante s'il est absent ;
+* ce token local doit etre genere meme si l'application n'expose encore aucune API inter-apps ;
+* une application cliente qui appelle une application hote doit stocker dans son propre `.env.local` une copie du token de l'hote, sous le meme nom canonique ;
+* aucun token inter-apps ne doit etre stocke dans `.env.dev`, `.env.prod`, `.env.template`, `README.md`, `README_DEV.md`, `AGENTS.md` ou `CODEX_START.md`.
+
+### Variables non secretes associees
+
+Les variables non secretes de connexion vers une application hote doivent suivre la meme convention basee sur `APP_DEPOT` :
+
+```env
+<HOST_DEPOT_NORMALISE>_API_BASE=
+<HOST_DEPOT_NORMALISE>_API_TIMEOUT=
+```
+
+### En-tete HTTP universel
+
+L'authentification technique inter-apps doit utiliser un en-tete HTTP universel :
+
+```text
+X-Internal-Api-Token
+```
+
+Regles :
+
+* ne pas creer un nom d'en-tete specifique au metier ;
+* ne pas creer un nom d'en-tete specifique a une paire d'applications ;
+* l'identite metier utile au traitement applicatif doit etre transmise dans le payload, jamais deduite du token.
+
+### Portee
+
+Cette methode universelle s'applique notamment :
+
+* a la synchronisation des anniversaires de `Contact` vers `Calendrier` ;
+* a toute future integration backend vers backend entre applications du meme ecosysteme.
 
 ---
 
