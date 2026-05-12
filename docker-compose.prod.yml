@@ -33,18 +33,21 @@ services:
       - "traefik.http.routers.${APP_SLUG}-api.tls=true"
       - "traefik.http.routers.${APP_SLUG}-api.tls.certresolver=le"
       - "traefik.http.routers.${APP_SLUG}-api.priority=100"
+      - "traefik.http.routers.${APP_SLUG}-api.service=${APP_SLUG}-api"
       - "traefik.http.services.${APP_SLUG}-api.loadbalancer.server.port=8000"
       - "traefik.http.routers.${APP_SLUG}-admin.rule=Host(`${APP_HOST}`) && PathPrefix(`/admin/`)"
       - "traefik.http.routers.${APP_SLUG}-admin.entrypoints=websecure"
       - "traefik.http.routers.${APP_SLUG}-admin.tls=true"
       - "traefik.http.routers.${APP_SLUG}-admin.tls.certresolver=le"
       - "traefik.http.routers.${APP_SLUG}-admin.priority=100"
+      - "traefik.http.routers.${APP_SLUG}-admin.service=${APP_SLUG}-admin"
       - "traefik.http.services.${APP_SLUG}-admin.loadbalancer.server.port=8000"
       - "traefik.http.routers.${APP_SLUG}-static.rule=Host(`${APP_HOST}`) && PathPrefix(`/static/`)"
       - "traefik.http.routers.${APP_SLUG}-static.entrypoints=websecure"
       - "traefik.http.routers.${APP_SLUG}-static.tls=true"
       - "traefik.http.routers.${APP_SLUG}-static.tls.certresolver=le"
       - "traefik.http.routers.${APP_SLUG}-static.priority=100"
+      - "traefik.http.routers.${APP_SLUG}-static.service=${APP_SLUG}-static"
       - "traefik.http.services.${APP_SLUG}-static.loadbalancer.server.port=8000"
 
   frontend:
@@ -74,6 +77,7 @@ services:
       - "traefik.http.routers.${APP_SLUG}-frontend.tls=true"
       - "traefik.http.routers.${APP_SLUG}-frontend.tls.certresolver=le"
       - "traefik.http.routers.${APP_SLUG}-frontend.priority=1"
+      - "traefik.http.routers.${APP_SLUG}-frontend.service=${APP_SLUG}-frontend"
       - "traefik.http.services.${APP_SLUG}-frontend.loadbalancer.server.port=80"
 
 volumes:
