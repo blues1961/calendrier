@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { api } from '../../api'
-import monSiteSymbol from '../../assets/mon-site-symbol.png'
+import monSiteLogo from '../../assets/mon-site-logo.png'
 import ThemeToggle from '../ThemeToggle'
 
 export default function Login({ onLogin, appName = 'Calendrier', theme = 'dark', onThemeChange }){
@@ -16,49 +16,50 @@ export default function Login({ onLogin, appName = 'Calendrier', theme = 'dark',
   }
 
   return (
-    <div className="page login-page">
-      <main className="login-card">
-        <div className="login-card__tools">
-          <ThemeToggle theme={theme} onChange={onThemeChange} />
-        </div>
+    <section className="login-shell">
+      <article className="login-card">
         <div className="login-head">
-          <img src={monSiteSymbol} alt="mon-site.ca" className="login-logo" />
-          {appName && <h1 className="login-title">{appName}</h1>}
-          <p className="login-sub">Connexion</p>
+          <img className="login-logo" src={monSiteLogo} alt="mon-site.ca" />
+          <ThemeToggle
+            theme={theme}
+            onChange={onThemeChange}
+            className="login-theme-toggle"
+          />
         </div>
-        <form onSubmit={submit} className="login-form">
-          <label className="login-label">
-            <span>Nom d’utilisateur</span>
+        <p className="eyebrow">{appName}</p>
+        <h1>Connexion</h1>
+        <p className="hero-copy">
+          Accès privé aux calendriers, événements et anniversaires.
+        </p>
+        {err ? <div role="alert" className="status-banner error">{err}</div> : null}
+        <form onSubmit={submit} className="data-form">
+          <label>
+            Nom d&apos;utilisateur
             <input
               className="input"
               type="text"
               value={username}
               onChange={e => setUsername(e.target.value)}
-              placeholder="Identifiant"
+              autoComplete="username"
               required
             />
           </label>
-          <label className="login-label">
-            <span>Mot de passe</span>
+          <label>
+            Mot de passe
             <input
               className="input"
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              placeholder="Mot de passe"
+              autoComplete="current-password"
               required
             />
           </label>
-          <button type="submit" className="btn btn--light btn--block">
+          <button type="submit" className="primary-button">
             Se connecter
           </button>
-          {err && (
-            <div role="alert" className="form-error">
-              {err}
-            </div>
-          )}
         </form>
-      </main>
-    </div>
+      </article>
+    </section>
   )
 }
