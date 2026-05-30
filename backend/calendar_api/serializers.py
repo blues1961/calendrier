@@ -10,6 +10,7 @@ class CalendarSerializer(serializers.ModelSerializer):
 class EventSerializer(serializers.ModelSerializer):
     calendar_name = serializers.ReadOnlyField(source="calendar.name")
     kind = serializers.SerializerMethodField()
+    contact = serializers.SerializerMethodField()
     recurrence = serializers.ReadOnlyField()
     month = serializers.ReadOnlyField(source="recurrence_month")
     day = serializers.ReadOnlyField(source="recurrence_day")
@@ -25,6 +26,23 @@ class EventSerializer(serializers.ModelSerializer):
             return "birthday"
         return "event"
 
+    def get_contact(self, obj):
+        if not obj.external_contact_id:
+            return None
+
+        snapshot = obj.external_contact_snapshot or {}
+        return {
+            "id": obj.external_contact_id,
+            "visibility": snapshot.get("visibility", ""),
+            "name": snapshot.get("name", ""),
+            "organization": snapshot.get("organization", ""),
+            "address": snapshot.get("address", ""),
+            "email": snapshot.get("email", ""),
+            "phone": snapshot.get("phone", ""),
+            "encrypted_payload": snapshot.get("encrypted_payload", ""),
+            "encryption_version": snapshot.get("encryption_version", ""),
+        }
+
     class Meta:
         model = Event
         fields = [
@@ -38,11 +56,14 @@ class EventSerializer(serializers.ModelSerializer):
             "end",
             "all_day",
             "location",
+            "external_contact_id",
+            "external_contact_snapshot",
+            "contact",
             "recurrence",
             "month",
             "day",
         ]
-        read_only_fields = ["kind", "calendar_name", "recurrence", "month", "day"]
+        read_only_fields = ["kind", "calendar_name", "contact", "recurrence", "month", "day"]
 
 
 class DashboardEventsQuerySerializer(serializers.Serializer):

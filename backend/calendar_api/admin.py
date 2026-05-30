@@ -11,7 +11,7 @@ class CalendarAdmin(admin.ModelAdmin):
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    list_display = ("id", "title", "calendar", "start", "end", "all_day")
+    list_display = ("id", "title", "calendar", "start", "end", "all_day", "external_contact_id")
     list_filter = ("all_day", "calendar")
-    search_fields = ("title", "calendar__name")
+    search_fields = ("title", "calendar__name", "external_contact_id")
     ordering = ("-start",)

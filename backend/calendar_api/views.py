@@ -13,6 +13,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .contact_integration import ContactIntegrationError, list_contacts
 from .integrations import delete_contact_birthday, sync_contact_birthday
 from .models import Calendar, Event, ensure_birthday_calendar
 from .serializers import CalendarSerializer, DashboardEventsQuerySerializer, EventSerializer
@@ -131,6 +132,22 @@ class EventViewSet(viewsets.ModelViewSet):
                 imported += 1
 
         return Response({"imported": imported, "skipped": skipped}, status=status.HTTP_200_OK)
+
+
+class ContactProxyView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        try:
+            contacts = list_contacts(
+                owner_username=request.user.username,
+                search=request.query_params.get("search", ""),
+                visibility=request.query_params.get("visibility", ""),
+            )
+        except ContactIntegrationError as exc:
+            return Response({"detail": str(exc)}, status=exc.status_code)
+
+        return Response(contacts, status=status.HTTP_200_OK)
 
 
 class ContactBirthdaySyncSerializer(serializers.Serializer):

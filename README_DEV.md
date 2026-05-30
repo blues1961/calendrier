@@ -254,6 +254,16 @@ Le script crée aussi `.env.local` si nécessaire et ajoute sans écraser les cl
 * `POSTGRES_PASSWORD`, `DJANGO_SECRET_KEY`
 * `CALENDRIER_API_TOKEN`
 
+Pour associer des contacts aux événements, `Calendrier` lit l'application `Contact` via :
+
+```env
+CONTACT_API_BASE=
+CONTACT_API_TIMEOUT=
+CONTACT_API_TOKEN=
+```
+
+`CONTACT_API_BASE` et `CONTACT_API_TIMEOUT` sont non secrets. `CONTACT_API_TOKEN` est une copie du token local de l'application hôte `Contact` et doit rester dans `.env.local`.
+
 Les secrets sont générés par :
 
 ```bash

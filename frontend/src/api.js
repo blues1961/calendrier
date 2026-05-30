@@ -74,5 +74,8 @@ export const api = {
     importIcs: async (formData) => (await instance.post('events/import-ics/', formData)).data,
     update: async (id, payload) => (await instance.put(`events/${id}/`, payload)).data,
     remove: async (id) => (await instance.delete(`events/${id}/`)).data,
+  },
+  contacts: {
+    list: async (params = null) => (await instance.get('contact-integrations/contacts/', { params: params || undefined })).data,
   }
 }

@@ -36,6 +36,8 @@ const messages = {
 export default function CalendarBoard({ sidebarOpen = true }){
   const [cals, setCals] = useState([])
   const [events, setEvents] = useState([])
+  const [contacts, setContacts] = useState([])
+  const [contactsError, setContactsError] = useState('')
   const [selected, setSelected] = useState(new Set())
   const selectAllRef = useRef(null)
   const [creatingCal, setCreatingCal] = useState(false)
@@ -50,6 +52,9 @@ export default function CalendarBoard({ sidebarOpen = true }){
     const end = event.end instanceof Date ? event.end : new Date(event.end)
     const lines = [
       title || event.title || '(sans titre)',
+      event.contact?.name ? `Contact : ${event.contact.name}` : null,
+      event.contact?.phone ? `Tél. : ${event.contact.phone}` : null,
+      event.contact?.address ? `Adresse : ${event.contact.address}` : null,
       event.location ? String(event.location) : null,
       event.description ? String(event.description) : null,
       `${format(start, 'PP p', { locale: fr })} → ${format(end, 'PP p', { locale: fr })}`,
@@ -62,6 +67,17 @@ export default function CalendarBoard({ sidebarOpen = true }){
       const cs = await api.calendars.list()
       setCals(cs)
       setSelected(new Set(cs.map(c => c.id)))
+  })() }, [])
+
+  useEffect(() => { (async () => {
+      try {
+        const payload = await api.contacts.list()
+        setContacts(payload)
+        setContactsError('')
+      } catch (error) {
+        setContacts([])
+        setContactsError(error?.response?.data?.detail || error?.message || 'Contacts indisponibles.')
+      }
   })() }, [])
 
   useEffect(() => { (async () => {
@@ -244,6 +260,8 @@ export default function CalendarBoard({ sidebarOpen = true }){
           <EventEditor
             event={editingEvt}
             calendars={cals}
+            contacts={contacts}
+            contactsError={contactsError}
             title={editingEvt?.id ? 'Modifier l\u2019événement' : 'Nouvel événement'}
             onCancel={() => setEditingEvt(null)}
             onSave={async (payload, opts) => {

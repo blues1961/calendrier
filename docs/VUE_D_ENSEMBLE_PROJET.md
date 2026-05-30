@@ -151,6 +151,8 @@ Champs structurants :
 - `end`
 - `all_day`
 - `location`
+- `external_contact_id`
+- `external_contact_snapshot`
 - `external_uid`
 - `created_at`
 - `updated_at`
@@ -200,6 +202,15 @@ Contrat d'intégration avec `Contacts` :
 - si `name` est vide ou `birthday` est nul, l'événement anniversaire correspondant est supprimé ;
 - l'usager `owner_username` doit exister dans `Calendrier` ;
 - l'événement est identifié de façon stable par `external_uid=contact-birthday:<owner_username>:<contact_id>`.
+
+Association d'un contact à un événement :
+
+- l'éditeur d'événement lit les contacts via `GET /api/contact-integrations/contacts/` côté `Calendrier` ;
+- `Calendrier` appelle ensuite `Contact` avec `CONTACT_API_TOKEN` et l'en-tête `X-Internal-Api-Token` ;
+- l'événement stocke seulement `external_contact_id` et un snapshot d'affichage ;
+- `Contact` reste la source de vérité des coordonnées ;
+- l'adresse du contact peut alimenter le champ `location` de l'événement ;
+- le téléphone et l'adresse du contact sont affichables dans l'éditeur et les infobulles.
 
 ## 9. Commandes d'exploitation
 

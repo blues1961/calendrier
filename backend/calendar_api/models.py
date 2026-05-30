@@ -46,6 +46,8 @@ class Event(models.Model):
     end = models.DateTimeField()
     all_day = models.BooleanField(default=False)
     location = models.CharField(max_length=200, blank=True)
+    external_contact_id = models.CharField(max_length=64, blank=True, default="")
+    external_contact_snapshot = models.JSONField(blank=True, default=dict)
     external_uid = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     recurrence = models.CharField(max_length=16, choices=Recurrence.choices, default=Recurrence.NONE)
     recurrence_month = models.PositiveSmallIntegerField(blank=True, null=True)

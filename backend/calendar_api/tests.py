@@ -100,6 +100,43 @@ class CalendarApiTests(APITestCase):
         self.assertEqual(kinds_by_id[birthday_event.id], "birthday")
         self.assertEqual(kinds_by_id[personal_event.id], "event")
 
+    def test_event_can_reference_external_contact_snapshot(self):
+        personal_calendar = Calendar.objects.create(
+            owner=self.user,
+            name="Maison",
+            color="#1976d2",
+            is_default=True,
+            kind=Calendar.Kind.PERSONAL,
+        )
+        now = timezone.now()
+
+        response = self.client.post(
+            "/api/events/",
+            {
+                "calendar": personal_calendar.id,
+                "title": "Rendez-vous garage",
+                "description": "",
+                "start": now.isoformat(),
+                "end": (now + timedelta(hours=1)).isoformat(),
+                "all_day": False,
+                "location": "123 rue Principale",
+                "external_contact_id": "42",
+                "external_contact_snapshot": {
+                    "id": 42,
+                    "visibility": "public",
+                    "name": "Garage Tremblay",
+                    "address": "123 rue Principale",
+                    "phone": "555-0101",
+                },
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["contact"]["name"], "Garage Tremblay")
+        self.assertEqual(response.data["contact"]["address"], "123 rue Principale")
+        self.assertEqual(response.data["contact"]["phone"], "555-0101")
+
     def test_empty_system_birthday_calendar_is_replaced_by_legacy_calendar_with_events(self):
         empty_system = Calendar.objects.create(
             owner=self.user,

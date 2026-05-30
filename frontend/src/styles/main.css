@@ -704,6 +704,24 @@ body {
   overflow-y: auto;
 }
 
+.contact-preview {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.contact-preview a {
+  color: var(--link);
+  text-decoration: none;
+}
+
 .editor-checkbox {
   display: inline-flex;
   align-items: center;

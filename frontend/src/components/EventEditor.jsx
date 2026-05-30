@@ -14,11 +14,22 @@ function fromLocalInputValue(v){
   return d.toISOString()
 }
 
-export default function EventEditor({ event, calendars = [], onCancel, onSave, onDelete, title = 'Modifier l\u2019événement' }){
+export default function EventEditor({
+  event,
+  calendars = [],
+  contacts = [],
+  contactsError = '',
+  onCancel,
+  onSave,
+  onDelete,
+  title = 'Modifier l\u2019événement',
+}){
   const [form, setForm] = useState(() => ({
     title: event?.title || '',
     description: event?.description || '',
     location: event?.location || '',
+    external_contact_id: event?.external_contact_id || '',
+    external_contact_snapshot: event?.external_contact_snapshot || {},
     all_day: !!(event?.all_day),
     start: toLocalInputValue(event?.start),
     end: toLocalInputValue(event?.end),
@@ -36,6 +47,16 @@ export default function EventEditor({ event, calendars = [], onCancel, onSave, o
   const canSave = useMemo(() => form.title.trim() && form.start && form.end && form.calendar, [form])
 
   function upd(k, v){ setForm(prev => ({ ...prev, [k]: v })) }
+
+  function updateContact(contactId) {
+    const selectedContact = contacts.find(contact => String(contact.id) === String(contactId))
+    setForm(prev => ({
+      ...prev,
+      external_contact_id: contactId,
+      external_contact_snapshot: selectedContact || {},
+      location: selectedContact?.address || prev.location,
+    }))
+  }
 
   const autoResize = (el) => {
     if (!el) return
@@ -61,6 +82,8 @@ export default function EventEditor({ event, calendars = [], onCancel, onSave, o
         title: form.title.trim(),
         description: form.description.trim(),
         location: form.location.trim(),
+        external_contact_id: form.external_contact_id,
+        external_contact_snapshot: form.external_contact_snapshot,
         all_day: !!form.all_day,
         start: fromLocalInputValue(form.start),
         end: fromLocalInputValue(form.end),
@@ -107,6 +130,20 @@ export default function EventEditor({ event, calendars = [], onCancel, onSave, o
     }
   }
 
+  const selectedContactIsMissing =
+    form.external_contact_id &&
+    !contacts.some(contact => String(contact.id) === String(form.external_contact_id))
+  const selectedContact =
+    contacts.find(contact => String(contact.id) === String(form.external_contact_id)) ||
+    form.external_contact_snapshot ||
+    null
+  const currentContactLabel =
+    selectedContact?.name ||
+    (selectedContact?.visibility === 'private' ? 'Contact privé' : 'Contact associé')
+  const hasSelectedContactDetails =
+    selectedContact &&
+    (selectedContact.phone || selectedContact.address || selectedContact.email || selectedContact.organization)
+
   return (
     <form className="editor-pane" aria-labelledby="evt-editor-title" onSubmit={submit}>
       <div className="editor-header">
@@ -139,6 +176,39 @@ export default function EventEditor({ event, calendars = [], onCancel, onSave, o
             autoResize(e.target)
           }}
         />
+      </label>
+
+      <label htmlFor="ev-contact" className="editor-field">
+        <span>Contact</span>
+        <select
+          id="ev-contact"
+          value={form.external_contact_id}
+          onChange={e => updateContact(e.target.value)}
+          disabled={Boolean(contactsError)}
+        >
+          <option value="">Aucun contact associé</option>
+          {selectedContactIsMissing && (
+            <option value={form.external_contact_id}>{currentContactLabel}</option>
+          )}
+          {contacts.map(contact => (
+            <option key={contact.id} value={contact.id}>
+              {contact.name || (contact.visibility === 'private' ? 'Contact privé' : `Contact #${contact.id}`)}
+            </option>
+          ))}
+        </select>
+        {contactsError && (
+          <div className="form-error">
+            {contactsError} L’événement reste modifiable; crée l’utilisateur correspondant dans Contact pour associer un contact.
+          </div>
+        )}
+        {hasSelectedContactDetails && (
+          <div className="contact-preview">
+            {selectedContact.organization && <span>{selectedContact.organization}</span>}
+            {selectedContact.phone && <a href={`tel:${selectedContact.phone}`}>Tél. {selectedContact.phone}</a>}
+            {selectedContact.address && <span>Adresse : {selectedContact.address}</span>}
+            {selectedContact.email && <a href={`mailto:${selectedContact.email}`}>{selectedContact.email}</a>}
+          </div>
+        )}
       </label>
 
       <label htmlFor="ev-start" className="editor-field">
