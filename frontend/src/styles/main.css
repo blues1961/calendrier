@@ -722,6 +722,37 @@ body {
   text-decoration: none;
 }
 
+.contact-vault {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.contact-vault p {
+  margin: 0;
+}
+
+.contact-vault__unlock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.contact-vault__unlock input {
+  flex: 1 1 240px;
+}
+
+.contact-vault__lock {
+  justify-self: flex-start;
+}
+
 .editor-checkbox {
   display: inline-flex;
   align-items: center;

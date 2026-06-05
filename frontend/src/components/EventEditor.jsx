@@ -1,5 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 
+import { decryptPrivateFields, deriveVaultKeyMaterial } from '../contactCrypto'
+
+const PRIVATE_CONTACTS_VALUE = '__private_contacts__'
+
 function toLocalInputValue(dt){
   if (!dt) return ''
   const d = (dt instanceof Date) ? dt : new Date(dt)
@@ -19,6 +23,7 @@ export default function EventEditor({
   calendars = [],
   contacts = [],
   contactsError = '',
+  user = null,
   onCancel,
   onSave,
   onDelete,
@@ -41,6 +46,13 @@ export default function EventEditor({
   const [segments, setSegments] = useState([{ count: 10, gap: 0 }])
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
+  const [vaultUnlock, setVaultUnlock] = useState({
+    error: '',
+    passphrase: '',
+    pending: false,
+    unlockedContacts: [],
+    unlockRequested: false,
+  })
   const descRef = useRef(null)
   const locRef = useRef(null)
 
@@ -49,13 +61,84 @@ export default function EventEditor({
   function upd(k, v){ setForm(prev => ({ ...prev, [k]: v })) }
 
   function updateContact(contactId) {
+    if (contactId === PRIVATE_CONTACTS_VALUE) {
+      setForm(prev => ({
+        ...prev,
+        external_contact_id: '',
+        external_contact_snapshot: {},
+      }))
+      setVaultUnlock(prev => ({
+        ...prev,
+        error: '',
+        passphrase: '',
+        unlockRequested: true,
+      }))
+      return
+    }
+
     const selectedContact = contacts.find(contact => String(contact.id) === String(contactId))
+    const unlockedContact = vaultUnlock.unlockedContacts.find(contact => contact.id === String(contactId))
+    const visibleFields = unlockedContact?.fields || selectedContact || {}
+    const shouldCopyLocation = selectedContact?.visibility !== 'private'
     setForm(prev => ({
       ...prev,
       external_contact_id: contactId,
       external_contact_snapshot: selectedContact || {},
-      location: selectedContact?.address || prev.location,
+      location: shouldCopyLocation ? visibleFields.address || prev.location : prev.location,
     }))
+  }
+
+  function updateVaultPassphrase(event) {
+    setVaultUnlock(prev => ({
+      ...prev,
+      error: '',
+      passphrase: event.target.value,
+    }))
+  }
+
+  async function unlockPrivateContacts() {
+    if (!privateContacts.length) return
+
+    setVaultUnlock(prev => ({
+      ...prev,
+      error: '',
+      pending: true,
+    }))
+
+    try {
+      const keyMaterial = await deriveVaultKeyMaterial(vaultUnlock.passphrase, user?.username || 'default')
+      const unlockedContacts = await Promise.all(
+        privateContacts.map(async contact => ({
+          id: String(contact.id),
+          fields: await decryptPrivateFields(contact.encrypted_payload, keyMaterial),
+        })),
+      )
+
+      setVaultUnlock(prev => ({
+        ...prev,
+        error: '',
+        passphrase: '',
+        pending: false,
+        unlockedContacts,
+        unlockRequested: false,
+      }))
+    } catch {
+      setVaultUnlock(prev => ({
+        ...prev,
+        error: 'Phrase de passe invalide ou contacts privés illisibles.',
+        pending: false,
+      }))
+    }
+  }
+
+  function lockPrivateContacts() {
+    setVaultUnlock({
+      error: '',
+      passphrase: '',
+      pending: false,
+      unlockedContacts: [],
+      unlockRequested: false,
+    })
   }
 
   const autoResize = (el) => {
@@ -137,12 +220,34 @@ export default function EventEditor({
     contacts.find(contact => String(contact.id) === String(form.external_contact_id)) ||
     form.external_contact_snapshot ||
     null
+  const selectedContactId = String(selectedContact?.id || form.external_contact_id || '')
+  const publicContacts = contacts.filter(contact => contact.visibility !== 'private')
+  const privateContacts = contacts.filter(contact => contact.visibility === 'private' && contact.encrypted_payload)
+  const unlockedPrivateContact = vaultUnlock.unlockedContacts.find(contact => contact.id === selectedContactId)
+  const contactSelectValue =
+    vaultUnlock.unlockRequested ||
+    (selectedContact?.visibility === 'private' && !unlockedPrivateContact)
+      ? PRIVATE_CONTACTS_VALUE
+      : form.external_contact_id
   const currentContactLabel =
     selectedContact?.name ||
     (selectedContact?.visibility === 'private' ? 'Contact privé' : 'Contact associé')
+  const selectedContactIsPrivate =
+    selectedContact?.visibility === 'private' && Boolean(selectedContact?.encrypted_payload)
+  const selectedContactIsUnlocked = selectedContactIsPrivate && Boolean(unlockedPrivateContact)
+  const visibleContact =
+    selectedContactIsPrivate && !selectedContactIsUnlocked
+      ? null
+      : selectedContactIsUnlocked
+        ? unlockedPrivateContact.fields
+        : selectedContact
   const hasSelectedContactDetails =
-    selectedContact &&
-    (selectedContact.phone || selectedContact.address || selectedContact.email || selectedContact.organization)
+    visibleContact &&
+    (visibleContact.phone ||
+      visibleContact.address ||
+      visibleContact.email ||
+      visibleContact.organization ||
+      visibleContact.notes)
 
   return (
     <form className="editor-pane" aria-labelledby="evt-editor-title" onSubmit={submit}>
@@ -182,17 +287,25 @@ export default function EventEditor({
         <span>Contact</span>
         <select
           id="ev-contact"
-          value={form.external_contact_id}
+          value={contactSelectValue}
           onChange={e => updateContact(e.target.value)}
           disabled={Boolean(contactsError)}
         >
           <option value="">Aucun contact associé</option>
+          {privateContacts.length > 0 && !vaultUnlock.unlockedContacts.length && (
+            <option value={PRIVATE_CONTACTS_VALUE}>Contact privé</option>
+          )}
           {selectedContactIsMissing && (
             <option value={form.external_contact_id}>{currentContactLabel}</option>
           )}
-          {contacts.map(contact => (
+          {vaultUnlock.unlockedContacts.map(contact => (
             <option key={contact.id} value={contact.id}>
-              {contact.name || (contact.visibility === 'private' ? 'Contact privé' : `Contact #${contact.id}`)}
+              {contact.fields.name || `Contact privé #${contact.id}`}
+            </option>
+          ))}
+          {publicContacts.map(contact => (
+            <option key={contact.id} value={contact.id}>
+              {contact.name || `Contact #${contact.id}`}
             </option>
           ))}
         </select>
@@ -201,12 +314,40 @@ export default function EventEditor({
             {contactsError} L’événement reste modifiable; crée l’utilisateur correspondant dans Contact pour associer un contact.
           </div>
         )}
+        {(vaultUnlock.unlockRequested || (selectedContactIsPrivate && !selectedContactIsUnlocked)) && (
+          <div className="contact-vault">
+            <p>Contacts privés verrouillés.</p>
+            <div className="contact-vault__unlock">
+              <input
+                type="password"
+                placeholder="Phrase de passe du coffre Contact"
+                value={vaultUnlock.passphrase}
+                onChange={updateVaultPassphrase}
+              />
+              <button
+                type="button"
+                className="btn btn--xs"
+                disabled={vaultUnlock.pending || !vaultUnlock.passphrase}
+                onClick={unlockPrivateContacts}
+              >
+                {vaultUnlock.pending ? 'Déverrouillage...' : 'Déverrouiller'}
+              </button>
+            </div>
+            {vaultUnlock.error && <div className="form-error">{vaultUnlock.error}</div>}
+          </div>
+        )}
+        {vaultUnlock.unlockedContacts.length > 0 && (
+          <button type="button" className="btn btn--light btn--xs contact-vault__lock" onClick={lockPrivateContacts}>
+            Verrouiller les contacts privés
+          </button>
+        )}
         {hasSelectedContactDetails && (
           <div className="contact-preview">
-            {selectedContact.organization && <span>{selectedContact.organization}</span>}
-            {selectedContact.phone && <a href={`tel:${selectedContact.phone}`}>Tél. {selectedContact.phone}</a>}
-            {selectedContact.address && <span>Adresse : {selectedContact.address}</span>}
-            {selectedContact.email && <a href={`mailto:${selectedContact.email}`}>{selectedContact.email}</a>}
+            {visibleContact.organization && <span>{visibleContact.organization}</span>}
+            {visibleContact.phone && <a href={`tel:${visibleContact.phone}`}>Tél. {visibleContact.phone}</a>}
+            {visibleContact.address && <span>Adresse : {visibleContact.address}</span>}
+            {visibleContact.email && <a href={`mailto:${visibleContact.email}`}>{visibleContact.email}</a>}
+            {visibleContact.notes && <span>Notes : {visibleContact.notes}</span>}
           </div>
         )}
       </label>

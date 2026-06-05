@@ -38,6 +38,7 @@ export default function CalendarBoard({ sidebarOpen = true }){
   const [events, setEvents] = useState([])
   const [contacts, setContacts] = useState([])
   const [contactsError, setContactsError] = useState('')
+  const [user, setUser] = useState(null)
   const [selected, setSelected] = useState(new Set())
   const selectAllRef = useRef(null)
   const [creatingCal, setCreatingCal] = useState(false)
@@ -67,6 +68,14 @@ export default function CalendarBoard({ sidebarOpen = true }){
       const cs = await api.calendars.list()
       setCals(cs)
       setSelected(new Set(cs.map(c => c.id)))
+  })() }, [])
+
+  useEffect(() => { (async () => {
+      try {
+        setUser(await api.auth.whoami())
+      } catch {
+        setUser(null)
+      }
   })() }, [])
 
   useEffect(() => { (async () => {
@@ -262,6 +271,7 @@ export default function CalendarBoard({ sidebarOpen = true }){
             calendars={cals}
             contacts={contacts}
             contactsError={contactsError}
+            user={user}
             title={editingEvt?.id ? 'Modifier l\u2019événement' : 'Nouvel événement'}
             onCancel={() => setEditingEvt(null)}
             onSave={async (payload, opts) => {

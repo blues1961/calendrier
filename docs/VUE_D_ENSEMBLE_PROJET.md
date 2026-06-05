@@ -209,8 +209,12 @@ Association d'un contact à un événement :
 - `Calendrier` appelle ensuite `Contact` avec `CONTACT_API_TOKEN` et l'en-tête `X-Internal-Api-Token` ;
 - l'événement stocke seulement `external_contact_id` et un snapshot d'affichage ;
 - `Contact` reste la source de vérité des coordonnées ;
-- l'adresse du contact peut alimenter le champ `location` de l'événement ;
-- le téléphone et l'adresse du contact sont affichables dans l'éditeur et les infobulles.
+- l'adresse d'un contact public peut alimenter le champ `location` de l'événement ;
+- le téléphone et l'adresse d'un contact public sont affichables dans l'éditeur et les infobulles.
+- les contacts privés sont regroupés sous une seule entrée `Contact privé` tant que le coffre Contact est verrouillé ;
+- après saisie de la phrase de passe, le frontend déchiffre localement les contacts privés et affiche leurs vrais noms pour permettre le choix ;
+- la phrase de passe et les champs déchiffrés ne sont jamais envoyés automatiquement au backend `Calendrier` ;
+- pour un contact privé, le snapshot d'événement conserve le payload chiffré fourni par `Contact` et ne doit pas contenir le vrai nom en clair.
 
 ## 9. Commandes d'exploitation
 

@@ -57,6 +57,7 @@ export const api = {
       setTokens(data)
       return data
     },
+    whoami: async () => (await instance.get('auth/whoami/')).data,
     logout: () => {
       clearTokens()
       window.dispatchEvent(new Event('storage'))

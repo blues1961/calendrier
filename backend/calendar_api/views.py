@@ -150,6 +150,22 @@ class ContactProxyView(APIView):
         return Response(contacts, status=status.HTTP_200_OK)
 
 
+class WhoAmIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        return Response(
+            {
+                "id": request.user.id,
+                "username": request.user.username,
+                "email": request.user.email,
+                "first_name": request.user.first_name,
+                "last_name": request.user.last_name,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
 class ContactBirthdaySyncSerializer(serializers.Serializer):
     owner_username = serializers.CharField()
     contact_id = serializers.CharField()

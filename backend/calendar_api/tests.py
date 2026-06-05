@@ -33,6 +33,13 @@ class CalendarApiTests(APITestCase):
         self.assertEqual(second_response.status_code, status.HTTP_200_OK)
         self.assertEqual(Calendar.objects.filter(owner=self.user, kind=Calendar.Kind.BIRTHDAYS).count(), 1)
 
+    def test_whoami_returns_current_user(self):
+        response = self.client.get("/api/auth/whoami/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["username"], "sylvain")
+        self.assertEqual(response.data["email"], "")
+
     def test_named_existing_anniversary_calendar_is_promoted_to_birthday_kind(self):
         Calendar.objects.create(
             owner=self.user,
@@ -136,6 +143,42 @@ class CalendarApiTests(APITestCase):
         self.assertEqual(response.data["contact"]["name"], "Garage Tremblay")
         self.assertEqual(response.data["contact"]["address"], "123 rue Principale")
         self.assertEqual(response.data["contact"]["phone"], "555-0101")
+
+    def test_event_can_reference_private_external_contact_snapshot(self):
+        personal_calendar = Calendar.objects.create(
+            owner=self.user,
+            name="Maison",
+            color="#1976d2",
+            is_default=True,
+            kind=Calendar.Kind.PERSONAL,
+        )
+        now = timezone.now()
+
+        response = self.client.post(
+            "/api/events/",
+            {
+                "calendar": personal_calendar.id,
+                "title": "Rendez-vous privé",
+                "description": "",
+                "start": now.isoformat(),
+                "end": (now + timedelta(hours=1)).isoformat(),
+                "all_day": False,
+                "location": "",
+                "external_contact_id": "99",
+                "external_contact_snapshot": {
+                    "id": 99,
+                    "visibility": "private",
+                    "encrypted_payload": "{\"version\":\"v1\",\"iv\":\"abc\",\"ciphertext\":\"def\"}",
+                    "encryption_version": "v1",
+                },
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["contact"]["visibility"], "private")
+        self.assertEqual(response.data["contact"]["name"], "")
+        self.assertEqual(response.data["contact"]["encrypted_payload"], "{\"version\":\"v1\",\"iv\":\"abc\",\"ciphertext\":\"def\"}")
 
     def test_empty_system_birthday_calendar_is_replaced_by_legacy_calendar_with_events(self):
         empty_system = Calendar.objects.create(

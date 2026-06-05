@@ -175,6 +175,15 @@ Cette methode universelle s'applique notamment :
 * a la synchronisation des anniversaires de `Contact` vers `Calendrier` ;
 * a toute future integration backend vers backend entre applications du meme ecosysteme.
 
+### Association de contacts aux événements
+
+* `Calendrier` peut associer un événement à un contact lu depuis l'application `Contact`.
+* L'appel vers `Contact` doit utiliser `CONTACT_API_TOKEN` via l'en-tête `X-Internal-Api-Token`.
+* L'événement stocke `external_contact_id` et `external_contact_snapshot`; `Contact` reste la source de vérité des coordonnées.
+* Les contacts privés ne doivent pas être exposés en clair côté backend `Calendrier`.
+* Le déverrouillage des contacts privés se fait côté frontend avec la phrase de passe du coffre Contact.
+* Le Dashboard ne doit jamais recevoir de phrase de passe, de clé de coffre ou de champs privés déchiffrés.
+
 ---
 
 ## 4. PostgreSQL
